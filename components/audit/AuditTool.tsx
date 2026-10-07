@@ -9,6 +9,7 @@ import { addRecent } from "@/lib/client/recent";
 import { fmtMs, pathOf } from "@/lib/client/format";
 import { Checkbox, ToolForm } from "../ToolForm";
 import { RecentSearches } from "../RecentSearches";
+import { AdSlot } from "../AdSlot";
 import { Button, ErrorNote, HttpStatus, PageHeader } from "../ui";
 import { AuditReportView } from "./AuditReportView";
 
@@ -187,7 +188,12 @@ export function AuditTool() {
         </div>
       )}
 
-      {run.report && !running && <AuditReportView report={run.report} />}
+      {run.report && !running && (
+        <>
+          <AuditReportView report={run.report} />
+          <AdSlot className="mt-8" />
+        </>
+      )}
 
       {run.phase === "idle" && !run.report && (
         <div className="grid gap-4 md:grid-cols-3">

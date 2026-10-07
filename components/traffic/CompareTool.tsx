@@ -10,6 +10,7 @@ import { download, toCsv } from "@/lib/client/csv";
 import { addRecent } from "@/lib/client/recent";
 import { displayQuery, siteUrlFor } from "@/lib/client/site";
 import { RecentSearches } from "../RecentSearches";
+import { AdSlot } from "../AdSlot";
 import { fmtCompact, fmtDate, fmtNumber, fmtRank } from "@/lib/client/format";
 import { LineChart, Legend } from "../charts/LineChart";
 import { Card, CardHeader, Delta, ErrorNote, MethodLink, PageHeader, Skeleton } from "../ui";
@@ -236,6 +237,7 @@ export function CompareTool() {
               <MethodLink anchor="traffic">How are visits estimated?</MethodLink>
             </div>
           </Card>
+          <AdSlot />
         </div>
       )}
     </div>

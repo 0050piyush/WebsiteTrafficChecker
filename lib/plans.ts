@@ -25,7 +25,7 @@ export const PLANS: Plan[] = [
     id: "free",
     name: "Free",
     price: 0,
-    description: "Every tool on the site, no account or card needed.",
+    description: "Every tool on the site, no account or card needed. Supported by ads.",
     highlights: [
       "Website traffic checker",
       "Compare up to 8 websites",
@@ -46,6 +46,7 @@ export const PLANS: Plan[] = [
     description: "For site owners and marketers who check their SEO every week.",
     highlights: [
       "Everything in Free",
+      "No ads anywhere on the site",
       "Site audits up to 5,000 pages",
       "Scheduled weekly audits with email alerts",
       "Track traffic trends for 50 websites",
@@ -64,7 +65,7 @@ export const PLANS: Plan[] = [
     price: 49,
     description: "For agencies and teams reporting on many client sites.",
     highlights: [
-      "Everything in Pro",
+      "Everything in Pro, ad-free",
       "Site audits up to 25,000 pages",
       "Daily scheduled audits",
       "Track traffic trends for 250 websites",
@@ -86,6 +87,10 @@ export interface ComparisonRow {
 }
 
 export const COMPARISON_GROUPS: { title: string; rows: ComparisonRow[] }[] = [
+  {
+    title: "Experience",
+    rows: [{ feature: "Ad-free", values: { free: false, pro: true, agency: true } }],
+  },
   {
     title: "Traffic & competitors",
     rows: [

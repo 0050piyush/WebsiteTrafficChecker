@@ -10,13 +10,16 @@ export interface FaqGroup {
   items: FaqItem[];
 }
 
+/** Ads are switched on with NEXT_PUBLIC_ADSENSE_* (read at build time). */
+const ADS_ON = !!(process.env.NEXT_PUBLIC_ADSENSE_CLIENT && process.env.NEXT_PUBLIC_ADSENSE_SLOT);
+
 export const FAQ: FaqGroup[] = [
   {
     id: "general",
     title: "General",
     items: [
       { q: "What is TrafficLens?", a: "A free SEO toolkit: a website traffic checker, competitor comparison, live site audits, an on-page SEO checker with a broken link checker, a keyword generator and Core Web Vitals tests. Every metric shows where it came from." },
-      { q: "Is it really free?", a: "Yes. Every tool works for free, without an account or a credit card. Paid plans are coming for heavier use, such as bigger crawls and scheduled monitoring, but the free tools stay free.", link: { href: "/pricing", label: "See pricing" } },
+      { q: "Is it really free?", a: "Yes. Every tool works for free, without an account or a credit card; the Free plan is supported by ads. Paid plans are coming for heavier use, such as bigger crawls and scheduled monitoring, and they're ad-free. The free tools stay free.", link: { href: "/pricing", label: "See pricing" } },
       { q: "Do I need an account?", a: "No. You can sign in with Google or GitHub, but accounts will only be needed for paid features such as saved projects and scheduled audits." },
       { q: "Is TrafficLens open source?", a: "Yes, under the MIT license. You can read the code, run your own copy, or contribute." },
     ],
@@ -57,7 +60,14 @@ export const FAQ: FaqGroup[] = [
     title: "Privacy & accounts",
     items: [
       { q: "Do you store the sites I check?", a: "No. Reports are generated live and not saved on our servers. Your recent searches are kept only in your own browser.", link: { href: "/privacy", label: "Privacy Policy" } },
-      { q: "Do you use cookies?", a: "Only if you sign in, for your session. There are no analytics, advertising or tracking cookies." },
+      {
+        q: "Do you use cookies?",
+        a: ADS_ON
+          ? "Signing in sets a session cookie. On the Free plan, ads from Google may use cookies to personalize and measure them; you can opt out of personalized ads in Google's Ads Settings. Paid plans are ad-free, and we don't use analytics cookies."
+          : "Only if you sign in, for your session. There are no analytics, advertising or tracking cookies.",
+        link: { href: "/privacy#storage", label: "Cookies and local storage" },
+      },
+      { q: "How do I get rid of ads?", a: "Pro and Agency plans are completely ad-free: sign in with your paid account and ads disappear on every page. Paid plans are on a waitlist for now.", link: { href: "/pricing", label: "See plans" } },
       { q: "When will paid plans be available?", a: "They're in development. Join the waitlist and we'll email you when they launch; nothing is charged until you choose to buy.", link: { href: "/contact?topic=waitlist", label: "Join the waitlist" } },
     ],
   },

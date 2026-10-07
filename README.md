@@ -100,6 +100,8 @@ All optional. See [`.env.example`](.env.example).
 | `AUTH_SECRET` | Signs session cookies. Required to turn on sign-in (`npx auth secret` generates one) |
 | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google sign-in |
 | `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` | GitHub sign-in |
+| `NEXT_PUBLIC_ADSENSE_CLIENT` / `NEXT_PUBLIC_ADSENSE_SLOT` | Google AdSense publisher ID and display ad unit. Ads appear only for Free-plan visitors, and `/ads.txt` is served automatically. Read at build time |
+| `PAID_PLAN_EMAILS` | Until payments exist: accounts treated as paid (ad-free), e.g. `you@example.com:agency, friend@example.com` |
 | `RESEND_API_KEY` | Turns on the contact form (sends through [Resend](https://resend.com)) |
 | `CONTACT_TO_EMAIL` | Inbox that receives contact and waitlist messages (server-side only) |
 | `CONTACT_FROM_EMAIL` | Sender on a domain verified in Resend (default: Resend's test sender) |
@@ -110,7 +112,8 @@ All optional. See [`.env.example`](.env.example).
   - Google: `https://YOUR-DOMAIN/api/auth/callback/google`
   - GitHub: `https://YOUR-DOMAIN/api/auth/callback/github`
 - **Contact form** (`/contact`) emails messages through Resend when `RESEND_API_KEY` and `CONTACT_TO_EMAIL` are set (rate limited to 5 per hour per IP, with a spam honeypot). Without them, the page points to GitHub issues.
-- **Plans** (`/pricing`) are defined in [`lib/plans.ts`](lib/plans.ts). Free covers every tool; Pro ($19/month) and Agency ($49/month) are on a waitlist (the "Join the waitlist" buttons open the contact form) until payments are added. Paid limits are not enforced in code yet.
+- **Plans** (`/pricing`) are defined in [`lib/plans.ts`](lib/plans.ts). Free covers every tool and is supported by ads; Pro ($19/month) and Agency ($49/month) are ad-free and on a waitlist (the "Join the waitlist" buttons open the contact form) until payments are added. Other paid limits are not enforced in code yet.
+- **Ads** use Google AdSense (`components/AdSlot.tsx`): a few responsive units below tool results and in blog posts, shown only when `NEXT_PUBLIC_ADSENSE_*` is set and the visitor isn't on a paid plan. Paid status comes from `PAID_PLAN_EMAILS` (`lib/plan.ts`) until billing is added. The Privacy Policy and FAQ switch to describing Google's advertising cookies automatically when ads are on.
 
 Deploying to a serverless platform works, but long audits need a function time limit of a few minutes (`maxDuration` is set to 300s on the audit route). A long-running Node server or container is the best fit.
 

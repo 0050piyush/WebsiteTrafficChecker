@@ -17,7 +17,7 @@ const TOOLS = [
 const WHY = [
   { icon: Eye, title: "Every number shows its work", body: "Each metric names its source and links to the method behind it. Estimates come with ranges, not false precision." },
   { icon: Zap, title: "Live, not stale", body: "Audits and page checks fetch the site right now, instead of reading from a stored index." },
-  { icon: Lock, title: "Free tools, no sign-up", body: "Every tool works without an account, a credit card or a captcha wall. Paid plans only add capacity, like bigger crawls and monitoring." },
+  { icon: Lock, title: "Free tools, no sign-up", body: "Every tool works without an account, a credit card or a captcha wall. Paid plans remove ads and add capacity, like bigger crawls and monitoring." },
   { icon: Download, title: "Export everything", body: "CSV and JSON exports on every table. Shareable links for every report." },
   { icon: Code2, title: "Open source & self-hostable", body: "Run it on your own server, read the code, or extend it. MIT licensed." },
   { icon: Braces, title: "API included", body: "The same engine behind the UI is available as a documented REST API." },

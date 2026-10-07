@@ -11,6 +11,7 @@ import { download, slug, toCsv } from "@/lib/client/csv";
 import { fmtDuration } from "@/lib/client/format";
 import { Checkbox, ToolForm } from "../ToolForm";
 import { RecentSearches } from "../RecentSearches";
+import { AdSlot } from "../AdSlot";
 import { DataTable, FilterInput, Tabs, type Column } from "../DataTable";
 import { Badge, Card, ErrorNote, MethodLink, Meter, PageHeader, Skeleton, StatusPill, cx } from "../ui";
 
@@ -337,6 +338,7 @@ function KeywordResults({ report }: { report: KeywordReport }) {
           <MethodLink anchor="keywords">How the suggest score and intent are computed</MethodLink>
         </div>
       </Card>
+      <AdSlot />
     </div>
   );
 }

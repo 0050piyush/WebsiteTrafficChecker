@@ -11,9 +11,9 @@ export const metadata: Metadata = {
 const PRINCIPLES = [
   { icon: Eye, title: "Show the work", body: "Every number names its source and links to how it's calculated. Estimates come with ranges, not false precision." },
   { icon: Zap, title: "Live over stale", body: "Audits and page checks fetch the site when you ask, so you see what's there today, not a crawl from weeks ago." },
-  { icon: Heart, title: "Free where it counts", body: "Every tool works without an account. Paid plans will only charge for what costs real money to run." },
+  { icon: Heart, title: "Free where it counts", body: "Every tool works without an account, supported by ads. Paid plans are ad-free and only charge for what costs real money to run." },
   { icon: Scale, title: "Honest about limits", body: "We don't have a backlink index or search volumes, so we don't invent them. We'd rather show less and be right." },
-  { icon: Lock, title: "Private by default", body: "Reports aren't stored, there are no ads or tracking cookies, and recent searches stay in your browser." },
+  { icon: Lock, title: "Private by default", body: "Reports aren't stored, recent searches stay in your browser, and we never sell your data." },
   { icon: Code2, title: "Open source", body: "The code is MIT licensed. Read it, run it on your own server, or help improve it." },
 ];
 

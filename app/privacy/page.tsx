@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Shield } from "lucide-react";
 import { SITE } from "@/lib/site";
+import { adsConfigured } from "@/lib/ads";
 import { PageHeader } from "@/components/ui";
 
 export const metadata: Metadata = {
@@ -23,6 +24,8 @@ function Section({ id, title, children }: { id: string; title: string; children:
 const updated = new Date(`${SITE.privacyUpdated}T00:00:00Z`).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
 
 export default function PrivacyPage() {
+  // Describe advertising only when ads are actually switched on (read at build time).
+  const ads = adsConfigured();
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
@@ -30,7 +33,10 @@ export default function PrivacyPage() {
         title="Privacy Policy"
         description={
           <>
-            Last updated {updated}. The short version: we don&apos;t sell data, show ads, use tracking cookies, or store the reports you run.
+            Last updated {updated}. The short version:{" "}
+            {ads
+              ? "we don't sell data or store the reports you run. The Free plan shows ads from Google, which may use cookies; paid plans are ad-free."
+              : "we don't sell data, show ads, use tracking cookies, or store the reports you run."}
           </>
         }
       />
@@ -40,7 +46,7 @@ export default function PrivacyPage() {
         <ul className="mt-2 list-disc space-y-1 pl-5">
           <li>You can use every tool without an account.</li>
           <li>Reports are generated on request and not saved on our servers.</li>
-          <li>No analytics, advertising or tracking cookies.</li>
+          <li>{ads ? "No analytics cookies. On the Free plan, Google's ads may use cookies; paid plans are ad-free." : "No analytics, advertising or tracking cookies."}</li>
           <li>If you sign in or contact us, we use your details only to provide the service and reply to you.</li>
         </ul>
       </div>
@@ -73,17 +79,46 @@ export default function PrivacyPage() {
           <li>Open PageRank, if the site operator has enabled it.</li>
           <li>Autocomplete services from Google, YouTube, Bing, DuckDuckGo and Amazon, for keyword ideas.</li>
         </ul>
+        {ads && (
+          <p>
+            <strong>Advertising (Free plan only).</strong> Ads are served by Google AdSense and load directly in your browser, so Google can see your IP address and may set or read cookies.
+            We don&apos;t share your account details or the reports you run with advertisers.
+          </p>
+        )}
         <p>
           Some images load directly in your browser, so those sites can see your IP address: favicons and preview images of the sites you analyze, and your profile picture from Google or GitHub when signed in.
         </p>
-        <p>Service providers that process data on our behalf: our hosting provider; Google and GitHub for sign-in; and Resend, which delivers contact-form emails to us.</p>
+        <p>
+          Service providers that process data on our behalf: our hosting provider; Google and GitHub for sign-in; Resend, which delivers contact-form emails to us
+          {ads ? "; and Google, which serves ads on the Free plan." : "."}
+        </p>
       </Section>
 
       <Section id="storage" title="3. Cookies and local storage">
         <ul>
           <li>
-            <strong>No cookies</strong> are set unless you sign in. Signing in sets an encrypted session cookie (valid for 30 days) plus short-lived security cookies used during the sign-in process.
+            <strong>{ads ? "TrafficLens itself" : "No cookies"}</strong> {ads ? "sets no cookies unless you sign in." : "are set unless you sign in."} Signing in sets an encrypted session cookie (valid for 30
+            days) plus short-lived security cookies used during the sign-in process.
           </li>
+          {ads && (
+            <li>
+              <strong>Advertising cookies (Free plan only).</strong> Third-party vendors, including Google, use cookies to serve ads based on your prior visits to this website or other websites.
+              Google&apos;s use of advertising cookies enables it and its partners to serve ads to you based on your visits to this site and/or other sites on the Internet. You can opt out of
+              personalized advertising in{" "}
+              <a href="https://adssettings.google.com" target="_blank" rel="noreferrer">
+                Google&apos;s Ads Settings
+              </a>
+              , or opt out of some third-party vendors&apos; use of cookies for personalized advertising at{" "}
+              <a href="https://www.aboutads.info/choices" target="_blank" rel="noreferrer">
+                aboutads.info
+              </a>
+              . Where the law requires it, for example in the EEA, the UK and Switzerland, you&apos;re asked for consent first. See{" "}
+              <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noreferrer">
+                how Google uses information from sites that use its services
+              </a>
+              . Paid plans never show ads.
+            </li>
+          )}
           <li>
             <strong>Local storage</strong> in your browser keeps your theme choice and your recent searches. This never leaves your device; you can clear it with the &ldquo;Clear&rdquo; button or from your
             browser settings.
@@ -101,7 +136,10 @@ export default function PrivacyPage() {
       </Section>
 
       <Section id="use" title="5. How we use information">
-        <p>Only to run the tools, prevent abuse, reply to messages and tell waitlist members when paid plans launch. We don&apos;t sell or rent personal information, and we don&apos;t use it for advertising.</p>
+        <p>
+          Only to run the tools, prevent abuse, reply to messages and tell waitlist members when paid plans launch. We don&apos;t sell or rent personal information
+          {ads ? ". On the Free plan, ads are served by Google under its own privacy policy; we don't share your account or reports with advertisers." : ", and we don't use it for advertising."}
+        </p>
       </Section>
 
       <Section id="rights" title="6. Your choices and rights">

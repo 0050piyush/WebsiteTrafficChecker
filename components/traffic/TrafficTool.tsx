@@ -20,6 +20,7 @@ import { TechStack } from "../report/TechStack";
 import { ChecksList } from "../report/ChecksList";
 import { PageSpeedPanel } from "../report/PageSpeedPanel";
 import { TopKeywords, keywordsSubtitle } from "./TopKeywords";
+import { AdSlot } from "../AdSlot";
 
 type SectionState<K extends SectionName> = { status: "loading" } | { status: "ok"; data: SectionMap[K] } | { status: "error"; error: string };
 type Sections = { [K in SectionName]: SectionState<K> };
@@ -373,6 +374,8 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
           {(k) => <TopKeywords data={k} />}
         </SectionBody>
       </Card>
+
+      <AdSlot />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>

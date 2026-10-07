@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { Menu, Moon, Sun, X } from "lucide-react";
 import { cx } from "./ui";
+import { useAccount, type AccountUser } from "@/lib/client/account";
 import { Logo } from "./Logo";
 
 export const NAV = [
@@ -60,30 +61,6 @@ function ThemeToggle() {
   );
 }
 
-interface AccountUser {
-  name: string | null;
-  email: string | null;
-  image: string | null;
-}
-
-/** Who is signed in. Fetched client-side so every page can stay static. */
-function useAccount(pathname: string | null) {
-  const [user, setUser] = useState<AccountUser | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/account", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d: { user?: AccountUser | null } | null) => {
-        if (!cancelled) setUser(d?.user ?? null);
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [pathname]);
-  return user;
-}
-
 function Avatar({ user }: { user: AccountUser }) {
   const initial = (user.name ?? user.email ?? "?").trim().charAt(0).toUpperCase();
   return user.image ? (
@@ -97,7 +74,7 @@ function Avatar({ user }: { user: AccountUser }) {
 export function SiteHeader() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const user = useAccount(pathname);
+  const user = useAccount(pathname)?.user ?? null;
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-bg/85 backdrop-blur supports-[backdrop-filter]:bg-bg/75">

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { formatPostDate, type PostMeta } from "@/lib/blog/posts";
 import { cx } from "../ui";
+import { AdSlot } from "../AdSlot";
 
 export function PostMetaLine({ post, className }: { post: Pick<PostMeta, "date" | "readingMinutes" | "tags">; className?: string }) {
   return (
@@ -51,6 +52,7 @@ export function PostGrid({ posts, page, pages }: { posts: PostMeta[]; page: numb
       {page === 1 && first ? (
         <>
           <PostCard post={first} featured />
+          <AdSlot className="mt-6" />
           {rest.length > 0 && (
             <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {rest.map((p) => (

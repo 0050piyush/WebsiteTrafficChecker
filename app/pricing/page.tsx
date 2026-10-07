@@ -21,7 +21,7 @@ export default function PricingPage() {
       <section className="mx-auto max-w-2xl py-6 text-center sm:py-10">
         <h1 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Simple pricing. Free where it counts.</h1>
         <p className="mt-3 text-lg text-ink-2">
-          Every tool is free to use today, with no account and no card. Paid plans will add what costs us real money to run: bigger crawls, scheduled monitoring and higher limits.
+          Every tool is free to use today, with no account and no card; the Free plan is supported by ads. Paid plans are ad-free and add what costs us real money to run: bigger crawls, scheduled monitoring and higher limits.
         </p>
       </section>
 
@@ -126,6 +126,7 @@ export default function PricingPage() {
         <div className="mt-4 divide-y divide-line rounded-xl border border-line bg-surface">
           {[
             ["Will the free tools stay free?", "Yes. Everything you can use today stays in the Free plan. Paid plans add capacity and features that cost money to run, such as large crawls and scheduled monitoring."],
+            ["Why does the Free plan show ads?", "Ads pay for the servers and data that keep the free tools free. Pro and Agency are completely ad-free: sign in with your paid account and the ads disappear on every page."],
             ["When will paid plans launch?", "They're in development. Join the waitlist and we'll email you when they're ready. There's no commitment and nothing is charged until you decide to buy."],
             ["Do I need an account?", "Not for the free tools. Accounts (sign in with Google or GitHub) will be needed for paid features like saved projects and scheduled audits."],
             ["Can I self-host instead?", "Yes. TrafficLens is open source under the MIT license, so you can run it on your own server and set your own limits."],

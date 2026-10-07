@@ -18,6 +18,7 @@ import { ChecksList, CheckSummary } from "../report/ChecksList";
 import { SerpPreview } from "../report/SerpPreview";
 import { TechStack } from "../report/TechStack";
 import { PageSpeedPanel } from "../report/PageSpeedPanel";
+import { AdSlot } from "../AdSlot";
 
 type TabId = "checks" | "content" | "links" | "images" | "social" | "technical" | "speed";
 
@@ -148,6 +149,7 @@ function PageReportView({ report: r }: { report: PageReport }) {
           {tab === "speed" && <PageSpeedPanel url={r.finalUrl} />}
         </div>
       </Card>
+      <AdSlot />
     </div>
   );
 }

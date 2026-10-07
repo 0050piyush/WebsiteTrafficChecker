@@ -6,6 +6,7 @@ import { ChevronRight, ExternalLink, Info } from "lucide-react";
 import { formatPostDate, getAllPosts, getPost, relatedPosts } from "@/lib/blog/posts";
 import { PostCard, PostMetaLine } from "@/components/blog/PostList";
 import { SITE } from "@/lib/site";
+import { AdSlot } from "@/components/AdSlot";
 import { siteUrl } from "@/lib/site-url";
 
 export const dynamicParams = false;
@@ -134,6 +135,8 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
         </aside>
 
         <div className="article mt-8" dangerouslySetInnerHTML={{ __html: post.html }} />
+
+        <AdSlot className="mt-10" />
 
         <section className="mt-12 border-t border-line pt-6" aria-labelledby="sources">
           <h2 id="sources" className="text-lg font-semibold text-ink">

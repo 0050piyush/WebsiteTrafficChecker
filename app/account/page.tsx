@@ -5,6 +5,7 @@ import { ArrowRight, LogOut } from "lucide-react";
 import { auth, signOut } from "@/auth";
 import { isAuthEnabled, PROVIDER_LABELS, type AuthProviderId } from "@/lib/auth-status";
 import { PLANS } from "@/lib/plans";
+import { planForEmail, showsAds } from "@/lib/plan";
 import { Badge, Card, CardHeader, KeyValue } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Your account", robots: { index: false } };
@@ -16,7 +17,8 @@ export default async function AccountPage() {
   if (!session?.user) redirect("/login?callbackUrl=/account");
   const user = session.user as typeof session.user & { provider?: AuthProviderId };
   const initial = (user.name ?? user.email ?? "?").trim().charAt(0).toUpperCase();
-  const free = PLANS[0];
+  const planId = planForEmail(user.email);
+  const plan = PLANS.find((p) => p.id === planId) ?? PLANS[0];
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -37,15 +39,20 @@ export default async function AccountPage() {
         <CardHeader title="Plan" action={<Badge tone="good">Active</Badge>} />
         <div className="space-y-4 p-5">
           <div>
-            <div className="text-lg font-semibold text-ink">{free.name}</div>
-            <p className="text-sm text-ink-2">{free.description}</p>
+            <div className="flex items-center gap-2 text-lg font-semibold text-ink">
+              {plan.name}
+              <Badge tone={showsAds(planId) ? "neutral" : "good"}>{showsAds(planId) ? "Includes ads" : "Ad-free"}</Badge>
+            </div>
+            <p className="text-sm text-ink-2">{plan.description}</p>
           </div>
-          <div className="rounded-lg bg-accent-soft px-4 py-3 text-sm text-accent-ink">
-            Pro and Agency plans are coming soon, with bigger audits, monitoring and higher API limits.{" "}
-            <Link href="/contact?topic=waitlist&plan=pro" className="font-medium underline-offset-2 hover:underline">
-              Join the waitlist
-            </Link>
-          </div>
+          {showsAds(planId) && (
+            <div className="rounded-lg bg-accent-soft px-4 py-3 text-sm text-accent-ink">
+              Pro and Agency plans are coming soon: no ads, bigger audits, monitoring and higher API limits.{" "}
+              <Link href="/contact?topic=waitlist&plan=pro" className="font-medium underline-offset-2 hover:underline">
+                Join the waitlist
+              </Link>
+            </div>
+          )}
           <Link href="/pricing" className="inline-flex items-center gap-1 text-sm font-medium text-accent-ink hover:underline">
             Compare plans <ArrowRight className="h-3.5 w-3.5" aria-hidden />
           </Link>
