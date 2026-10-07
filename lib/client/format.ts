@@ -11,6 +11,18 @@ export function fmtNumber(n: number | null | undefined): string {
   return full.format(Math.round(n));
 }
 
+/**
+ * Compact axis label with just enough decimals for the tick spacing, so neighbouring
+ * ticks never print the same text (13.05M vs 13.1M instead of 13.1M twice).
+ */
+export function fmtAxis(n: number, step?: number): string {
+  const abs = Math.abs(n);
+  const [div, suffix] = abs >= 1e9 ? [1e9, "B"] : abs >= 1e6 ? [1e6, "M"] : abs >= 1e3 ? [1e3, "K"] : [1, ""];
+  const scaledStep = step ? step / div : 1;
+  const decimals = scaledStep >= 1 ? 0 : Math.min(3, Math.ceil(-Math.log10(scaledStep) - 1e-9));
+  return `${Number((n / div).toFixed(decimals)).toLocaleString("en-US", { maximumFractionDigits: decimals })}${suffix}`;
+}
+
 export function fmtRank(n: number | null | undefined): string {
   return n ? `#${full.format(n)}` : "—";
 }

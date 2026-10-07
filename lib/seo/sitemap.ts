@@ -54,7 +54,19 @@ export interface SitemapCollection {
 export async function collectSitemapUrls(
   roots: string[],
   fetchText: (url: string) => Promise<{ status: number; body: Buffer }>,
-  { maxSitemaps = 10, maxUrls = 50_000 }: { maxSitemaps?: number; maxUrls?: number } = {},
+  {
+    maxSitemaps = 10,
+    maxUrls = 50_000,
+    concurrency = 1,
+    deadline,
+  }: {
+    maxSitemaps?: number;
+    maxUrls?: number;
+    /** Sitemaps fetched in parallel. */
+    concurrency?: number;
+    /** Epoch ms after which no new sitemaps are fetched (the result is marked partial). */
+    deadline?: number;
+  } = {},
 ): Promise<SitemapCollection> {
   const queue = [...new Set(roots)];
   const seen = new Set<string>();
@@ -62,29 +74,43 @@ export async function collectSitemapUrls(
   const seenUrls = new Set<string>();
   const sitemapsFetched: string[] = [];
   const errors: SitemapCollection["errors"] = [];
+  let attempted = 0;
   let partial = false;
 
   while (queue.length) {
-    const next = queue.shift()!;
-    if (seen.has(next)) continue;
-    if (sitemapsFetched.length >= maxSitemaps) {
+    if (deadline && Date.now() >= deadline) {
       partial = true;
       break;
     }
-    seen.add(next);
-    try {
-      const res = await fetchText(next);
-      if (res.status !== 200) {
-        errors.push({ url: next, error: `HTTP ${res.status}` });
-        continue;
+    const batch: string[] = [];
+    while (queue.length && batch.length < concurrency) {
+      const next = queue.shift()!;
+      if (seen.has(next)) continue;
+      if (attempted >= maxSitemaps) {
+        partial = true;
+        queue.length = 0;
+        break;
       }
-      sitemapsFetched.push(next);
-      const parsed = parseSitemap(sitemapBodyToText(res.body));
+      seen.add(next);
+      attempted++;
+      batch.push(next);
+    }
+    const results = await Promise.allSettled(batch.map((u) => fetchText(u)));
+    results.forEach((result, i) => {
+      const url = batch[i];
+      if (result.status === "rejected") {
+        errors.push({ url, error: (result.reason as Error)?.message ?? "Failed" });
+        return;
+      }
+      if (result.value.status !== 200) {
+        errors.push({ url, error: `HTTP ${result.value.status}` });
+        return;
+      }
+      sitemapsFetched.push(url);
+      const parsed = parseSitemap(sitemapBodyToText(result.value.body));
       if (parsed.kind === "unknown") {
-        errors.push({ url: next, error: "Not a valid XML sitemap" });
-        continue;
-      }
-      if (parsed.kind === "index") {
+        errors.push({ url, error: "Not a valid XML sitemap" });
+      } else if (parsed.kind === "index") {
         for (const e of parsed.entries) if (!seen.has(e.loc)) queue.push(e.loc);
       } else {
         for (const e of parsed.entries) {
@@ -98,9 +124,7 @@ export async function collectSitemapUrls(
           }
         }
       }
-    } catch (err) {
-      errors.push({ url: next, error: (err as Error).message });
-    }
+    });
   }
   return { urls, sitemapsFetched, errors, partial };
 }

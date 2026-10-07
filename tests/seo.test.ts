@@ -3,7 +3,7 @@ import { extractPage, looksClientRendered, robotsDirectives } from "@/lib/seo/ex
 import { runChecks } from "@/lib/seo/checks";
 import { detectTechnologies } from "@/lib/seo/tech";
 import { isAllowed, parseRobots, groupFor, robotsAccess } from "@/lib/seo/robots";
-import { parseSitemap, sitemapBodyToText } from "@/lib/seo/sitemap";
+import { collectSitemapUrls, parseSitemap, sitemapBodyToText } from "@/lib/seo/sitemap";
 import { countSyllables, readability, textPixelWidth, topNGrams, truncateToPixels } from "@/lib/seo/text";
 import { gzipSync } from "node:zlib";
 
@@ -250,6 +250,35 @@ describe("sitemaps", () => {
     const idx = parseSitemap(`<sitemapindex><sitemap><loc>https://e.com/s1.xml</loc></sitemap></sitemapindex>`);
     expect(idx.kind).toBe("index");
     expect(idx.entries[0].loc).toBe("https://e.com/s1.xml");
+  });
+
+  it("reads sitemap indexes in parallel and stops at the deadline", async () => {
+    const index = `<sitemapindex>${Array.from({ length: 6 }, (_, i) => `<sitemap><loc>https://e.com/s${i}.xml</loc></sitemap>`).join("")}</sitemapindex>`;
+    const child = (i: number) => `<urlset><url><loc>https://e.com/p${i}</loc></url></urlset>`;
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const fetchText = async (url: string) => {
+      inFlight++;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((r) => setTimeout(r, 30));
+      inFlight--;
+      const m = /s(\d)\.xml$/.exec(url);
+      return { status: 200, body: Buffer.from(m ? child(Number(m[1])) : index) };
+    };
+    const all = await collectSitemapUrls(["https://e.com/sitemap.xml"], fetchText, { concurrency: 3 });
+    expect(all.urls).toHaveLength(6);
+    expect(all.partial).toBe(false);
+    expect(maxInFlight).toBe(3);
+
+    const started = Date.now();
+    const slow = async (url: string) => {
+      await new Promise((r) => setTimeout(r, url.endsWith("sitemap.xml") ? 0 : 200));
+      return fetchText(url);
+    };
+    const partial = await collectSitemapUrls(["https://e.com/sitemap.xml"], slow, { concurrency: 2, deadline: Date.now() + 100 });
+    expect(partial.partial).toBe(true);
+    expect(partial.urls.length).toBeLessThan(6);
+    expect(Date.now() - started).toBeLessThan(1000);
   });
 
   it("gunzips .xml.gz bodies", () => {

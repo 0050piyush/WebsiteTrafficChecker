@@ -18,7 +18,8 @@ interface Props {
   logY?: boolean;
   /** Fill a light wash under a single series. */
   area?: boolean;
-  yFormat: (n: number) => string;
+  /** Formats values. For axis ticks on a linear scale `step` is the tick spacing, so labels can carry enough precision to stay distinct. */
+  yFormat: (n: number, step?: number) => string;
   xFormat: (x: string) => string;
   ariaLabel: string;
 }
@@ -74,6 +75,7 @@ export function LineChart({ series, height = 240, invertY, logY, area, yFormat, 
   const vMax = values.length ? Math.max(...values) : 1;
   const scale = logY ? logTicks(vMin, vMax) : niceLinearTicks(invertY ? Math.max(0, vMin) : Math.min(0, vMin), vMax);
 
+  const tickStep = !logY && scale.ticks.length > 1 ? scale.ticks[1] - scale.ticks[0] : undefined;
   const innerW = width - M.left - M.right;
   const innerH = height - M.top - M.bottom;
   const xAt = (i: number) => M.left + (xs.length <= 1 ? innerW / 2 : (i / (xs.length - 1)) * innerW);
@@ -146,7 +148,7 @@ export function LineChart({ series, height = 240, invertY, logY, area, yFormat, 
           <g key={v}>
             <line x1={M.left} x2={width - M.right} y1={yAt(v)} y2={yAt(v)} stroke="var(--chart-grid)" strokeWidth={1} />
             <text x={M.left - 8} y={yAt(v)} dy="0.32em" textAnchor="end" fontSize={11} fill="var(--chart-label)" className="tabular">
-              {yFormat(v)}
+              {yFormat(v, tickStep)}
             </text>
           </g>
         ))}

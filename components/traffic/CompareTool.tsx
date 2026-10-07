@@ -10,7 +10,7 @@ import { download, toCsv } from "@/lib/client/csv";
 import { addRecent } from "@/lib/client/recent";
 import { displayQuery, siteUrlFor } from "@/lib/client/site";
 import { RecentSearches } from "../RecentSearches";
-import { fmtCompact, fmtDate, fmtRank } from "@/lib/client/format";
+import { fmtCompact, fmtDate, fmtNumber, fmtRank } from "@/lib/client/format";
 import { LineChart, Legend } from "../charts/LineChart";
 import { Card, CardHeader, Delta, ErrorNote, MethodLink, PageHeader, Skeleton } from "../ui";
 
@@ -155,7 +155,7 @@ export function CompareTool() {
                     invertY
                     logY={useLog}
                     height={280}
-                    yFormat={(n) => `#${fmtCompact(n)}`}
+                    yFormat={(n) => (useLog || n >= 1_000_000 ? `#${fmtCompact(n)}` : `#${fmtNumber(n)}`)}
                     xFormat={(x) => fmtDate(x, { month: "short", day: "numeric" })}
                     ariaLabel={`Tranco rank history for ${series.map((s) => s.label).join(", ")}`}
                   />

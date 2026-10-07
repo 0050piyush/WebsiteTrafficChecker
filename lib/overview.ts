@@ -114,14 +114,18 @@ async function crawlability(report: Pick<PageReport, "finalUrl" | "robotsTxt">, 
     /* robots.txt unreachable: treated as absent */
   }
 
+  // Big sites have dozens of large sitemaps; read a few in parallel within a time budget
+  // and report the count as a lower bound ("+") rather than holding up the report.
   const roots = robotsInfo.sitemaps.length ? robotsInfo.sitemaps.slice(0, 5) : [`${origin}/sitemap.xml`];
+  const deadline = Date.now() + 10_000;
   const collection = await collectSitemapUrls(
     roots,
     async (url) => {
-      const r = await fetchUrl(url, { timeoutMs: 12_000, maxBytes: 30 * 1024 * 1024, signal });
+      // No single fetch may run past the overall budget.
+      const r = await fetchUrl(url, { timeoutMs: Math.max(1000, Math.min(8000, deadline - Date.now())), maxBytes: 15 * 1024 * 1024, signal });
       return { status: r.status, body: r.body };
     },
-    { maxSitemaps: 8, maxUrls: 100_000 },
+    { maxSitemaps: 8, maxUrls: 100_000, concurrency: 4, deadline },
   );
   const lastmods = collection.urls.map((u) => u.lastmod).filter((d): d is string => !!d && !isNaN(Date.parse(d)));
   lastmods.sort((a, b) => Date.parse(b) - Date.parse(a));
@@ -165,29 +169,48 @@ export async function runOverview(
   only?: SectionName[],
 ): Promise<void> {
   const want = (s: SectionName) => !only || only.includes(s);
-  const timed = async <K extends SectionName>(section: K, fn: () => Promise<SectionMap[K]>) => {
+  /**
+   * Run one section with a hard time budget, so a slow source can never hold the whole
+   * report (or outlive the serverless function). Work still in flight is aborted.
+   */
+  const timed = async <K extends SectionName>(section: K, budgetMs: number, fn: (signal: AbortSignal) => Promise<SectionMap[K]>) => {
     const start = Date.now();
+    const ctrl = new AbortController();
+    const onOuterAbort = () => ctrl.abort();
+    signal?.addEventListener("abort", onOuterAbort, { once: true });
+    const timer = setTimeout(() => ctrl.abort(), budgetMs);
+    const stopped = new Promise<never>((_, reject) =>
+      ctrl.signal.addEventListener("abort", () => reject(new Error(signal?.aborted ? "Cancelled" : `The data source didn't respond within ${Math.round(budgetMs / 1000)} seconds`)), {
+        once: true,
+      }),
+    );
+    stopped.catch(() => undefined);
     try {
-      const data = await fn();
+      const data = await Promise.race([fn(ctrl.signal), stopped]);
       emit({ section, status: "ok", data, ms: Date.now() - start } as SectionEvent);
       return data;
     } catch (err) {
       emit({ section, status: "error", error: (err as Error).message || "Failed", ms: Date.now() - start } as SectionEvent);
       return null;
+    } finally {
+      clearTimeout(timer);
+      ctrl.abort();
+      signal?.removeEventListener("abort", onOuterAbort);
     }
   };
 
+  // Budgets keep the longest chain (homepage, then crawlability) under the 60s route limit.
   await Promise.all([
-    want("traffic") && timed("traffic", async () => buildTrafficSection(await getTrancoRanks(target.domain))),
+    want("traffic") && timed("traffic", 20_000, async () => buildTrafficSection(await getTrancoRanks(target.domain))),
     (want("homepage") || want("crawlability")) &&
       (async () => {
-        const report = await timed("homepage", async () => trimReport(await homepageReport(target.hostname, signal)));
-        if (report) await timed("crawlability", () => crawlability(report, signal));
+        const report = await timed("homepage", 30_000, async (s) => trimReport(await homepageReport(target.hostname, s)));
+        if (report) await timed("crawlability", 20_000, (s) => crawlability(report, s));
         else emit({ section: "crawlability", status: "error", error: "Skipped because the homepage could not be fetched", ms: 0 });
       })(),
-    want("registration") && timed("registration", () => getRdap(target.domain)),
-    want("dns") && timed("dns", () => getDnsInfo(target.hostname, target.domain)),
-    want("history") && timed("history", () => getWaybackInfo(target.domain)),
-    want("authority") && timed("authority", async () => ({ enabled: isOpenPageRankEnabled(), value: await getOpenPageRank(target.domain) })),
+    want("registration") && timed("registration", 20_000, () => getRdap(target.domain)),
+    want("dns") && timed("dns", 15_000, () => getDnsInfo(target.hostname, target.domain)),
+    want("history") && timed("history", 20_000, () => getWaybackInfo(target.domain)),
+    want("authority") && timed("authority", 15_000, async () => ({ enabled: isOpenPageRankEnabled(), value: await getOpenPageRank(target.domain) })),
   ]);
 }

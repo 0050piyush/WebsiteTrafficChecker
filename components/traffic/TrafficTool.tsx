@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, BarChart3, ExternalLink, Globe, History, Link2, Lock, Server, ShieldCheck, Stethoscope, Cpu, Gauge, Download } from "lucide-react";
+import { ArrowRight, BarChart3, ExternalLink, Globe, History, Link2, Loader2, Lock, Server, ShieldCheck, Stethoscope, Cpu, Gauge, Download } from "lucide-react";
 import type { SectionMap, SectionName } from "@/lib/overview";
 import { readNdjson, errorMessage } from "@/lib/client/ndjson";
 import { addRecent } from "@/lib/client/recent";
 import { download, slug } from "@/lib/client/csv";
-import { fmtBytes, fmtCompact, fmtDate, fmtMs, fmtNumber, fmtRank, fmtYears } from "@/lib/client/format";
+import { fmtAxis, fmtBytes, fmtCompact, fmtDate, fmtMs, fmtNumber, fmtRank, fmtYears } from "@/lib/client/format";
 import { UNRANKED_CEILING } from "@/lib/traffic-model";
 import { ToolForm } from "../ToolForm";
 import { RecentSearches } from "../RecentSearches";
@@ -57,6 +57,14 @@ function withSections(s: OverviewState, names: SectionName[], value: { status: "
   return { ...s, sections: { ...s.sections, ...Object.fromEntries(names.map((n) => [n, value])) } as Sections };
 }
 
+const SECTION_KEYS = Object.keys(LOADING) as SectionName[];
+
+/** When a stream ends, any section that never reported back gets a retryable error instead of an endless skeleton. */
+function settleUnfinished(s: OverviewState, names: SectionName[] = SECTION_KEYS): OverviewState {
+  const stuck = names.filter((n) => s.sections[n].status === "loading");
+  return stuck.length ? withSections(s, stuck, { status: "error", error: "This section didn't finish loading." }) : s;
+}
+
 function useOverview(domain: string): OverviewState & { retry: (section: SectionName) => void } {
   // State is tagged with the domain it belongs to; a new domain starts from a fresh state.
   const [state, setState] = useState<OverviewState>(() => fresh(""));
@@ -82,9 +90,9 @@ function useOverview(domain: string): OverviewState & { retry: (section: Section
     const ctrl = new AbortController();
     const { update, onEvent } = handlers(domain, null);
     streamOverview(domain, null, ctrl.signal, onEvent)
-      .then(() => update((s) => ({ ...s, done: true })))
+      .then(() => update((s) => ({ ...settleUnfinished(s), done: true })))
       .catch((err: Error) => {
-        if (!ctrl.signal.aborted) update((s) => ({ ...s, fatal: err.message, done: true }));
+        if (!ctrl.signal.aborted) update((s) => ({ ...settleUnfinished(s), fatal: err.message, done: true }));
       });
     const pending = retries.current;
     return () => {
@@ -101,9 +109,11 @@ function useOverview(domain: string): OverviewState & { retry: (section: Section
       update((s) => withSections(s, group, { status: "loading" }));
       const ctrl = new AbortController();
       retries.current.push(ctrl);
-      streamOverview(domain, group, ctrl.signal, onEvent).catch((err: Error) => {
-        if (!ctrl.signal.aborted) update((s) => withSections(s, group, { status: "error", error: err.message }));
-      });
+      streamOverview(domain, group, ctrl.signal, onEvent)
+        .then(() => update((s) => settleUnfinished(s, group)))
+        .catch((err: Error) => {
+          if (!ctrl.signal.aborted) update((s) => withSections(s, group, { status: "error", error: err.message }));
+        });
     },
     [domain, handlers],
   );
@@ -133,7 +143,8 @@ export function TrafficTool() {
         label="Domain"
         placeholder="Enter a domain, e.g. example.com"
         button="Check traffic"
-        busy={!!domain && !overview.done}
+        // Spin only until the first results arrive; later sections show their own loading state.
+        busy={!!domain && !overview.done && SECTION_KEYS.every((n) => overview.sections[n].status === "loading")}
         openSite
         onSubmit={(v) => router.push(`/traffic?domain=${encodeURIComponent(v)}`)}
       />
@@ -217,6 +228,7 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
   };
 
   const ageYears = reg?.ageYears ?? hist?.ageYears ?? null;
+  const pending = SECTION_KEYS.filter((n) => s[n].status === "loading");
 
   return (
     <div className="space-y-6">
@@ -227,16 +239,24 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
           </div>
           <div className="min-w-0">
             <h2 className="truncate text-xl font-semibold text-ink">{hostname}</h2>
-            <a href={siteUrl} target="_blank" rel="noreferrer nofollow" className="inline-flex items-center gap-1 text-sm text-accent-ink hover:underline">
-              Visit site <ExternalLink className="h-3 w-3" aria-hidden />
-            </a>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <a href={siteUrl} target="_blank" rel="noreferrer nofollow" className="inline-flex items-center gap-1 text-sm text-accent-ink hover:underline">
+                Visit site <ExternalLink className="h-3 w-3" aria-hidden />
+              </a>
+              {pending.length > 0 && (
+                <span className="inline-flex items-center gap-1.5 text-xs text-ink-3" role="status">
+                  <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                  Loading {pending.length} more section{pending.length === 1 ? "" : "s"}…
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex gap-2">
           <Link href={`/compare?domains=${encodeURIComponent(domain)}`} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 text-sm text-ink hover:bg-surface-2">
             Compare
           </Link>
-          <button type="button" onClick={exportJson} disabled={!overview.done} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 text-sm text-ink hover:bg-surface-2 disabled:opacity-50">
+          <button type="button" onClick={exportJson} disabled={pending.length > 0} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 text-sm text-ink hover:bg-surface-2 disabled:opacity-50">
             <Download className="h-4 w-4" aria-hidden /> Export JSON
           </button>
         </div>
@@ -300,7 +320,9 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
                     series={chartSeries}
                     invertY={metric === "rank"}
                     area={metric === "visits"}
-                    yFormat={(n) => (metric === "rank" ? `#${fmtCompact(n)}` : fmtCompact(n))}
+                    yFormat={(n, step) =>
+                      metric === "rank" ? (n >= 1_000_000 ? `#${fmtCompact(n)}` : `#${fmtNumber(n)}`) : step === undefined ? fmtCompact(n) : fmtAxis(n, step)
+                    }
                     xFormat={(x) => fmtDate(x, { month: "short", day: "numeric" })}
                     ariaLabel={`${metric === "rank" ? "Tranco rank" : "Estimated visits"} for ${domain} over the last ${t.estimatesByDay.length} days`}
                   />
@@ -379,7 +401,19 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
                         ),
                       ],
                       ["Other bots", c.robots.access.otherBots ? "Allowed" : <StatusPill status="info" label="Blocked (site's choice)" />],
-                      ["Pages in XML sitemaps", c.sitemap.checked.length ? `${fmtNumber(c.sitemap.urlCount)}${c.sitemap.partial ? "+" : ""}` : <StatusPill status="warn" label="No sitemap found" />],
+                      [
+                        "Pages in XML sitemaps",
+                        !c.sitemap.checked.length ? (
+                          <StatusPill status="warn" label="No sitemap found" />
+                        ) : c.sitemap.partial && c.sitemap.urlCount === 0 ? (
+                          <StatusPill status="unknown" label="Too large to count quickly" />
+                        ) : (
+                          <span key="n" title={c.sitemap.partial ? "Only part of the sitemaps could be read in time, so this is a minimum" : undefined}>
+                            {fmtNumber(c.sitemap.urlCount)}
+                            {c.sitemap.partial ? "+" : ""}
+                          </span>
+                        ),
+                      ],
                       ["Sitemap last updated", fmtDate(c.sitemap.latestLastmod)],
                       ["Crawl delay (Bing)", c.robots.crawlDelay ? `${c.robots.crawlDelay}s` : "None"],
                     ]}
