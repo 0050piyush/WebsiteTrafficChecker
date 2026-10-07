@@ -180,6 +180,32 @@ export default function Page() {
         </p>
       </Section>
 
+      <Section id="top-keywords" title="Top keywords in the traffic report">
+        <p>
+          Tools like Ahrefs list the keywords a site ranks for from their own database of Google results, with each keyword&apos;s position and search volume. There&apos;s no free source for that data, so by default we
+          show the next best thing: the phrases a site targets that people actually search for.
+        </p>
+        <p>
+          <strong>Finding the phrases.</strong> We take the brand (from the domain name and the site&apos;s name), every part of the homepage title, the main headings and subheadings, and a few phrases repeated in the
+          page text. Long title phrases also contribute their first two or three words, because &quot;is it down right now&quot; is usually searched as &quot;is it down&quot;.
+        </p>
+        <p>
+          <strong>Search demand.</strong> Search engines only suggest real, popular queries, and the more popular a query, the fewer letters you need to type before it appears. We type each phrase in full, then
+          about three quarters of it, then about half, and note the shortest prefix that still brings it up and its position in the list. Suggested after half the letters at #1 scores 100; suggested only when typed in
+          full scores 30 or less; never suggested means it&apos;s left out. Scores of 55+ are shown as High demand, 25–54 as Medium, and below that as Low. Like the suggest score, it&apos;s relative, not a search volume.
+        </p>
+        <p>
+          <strong>Real rankings (optional).</strong> When the site operator connects a{" "}
+          <a href="https://dataforseo.com/apis/dataforseo-labs-api" target="_blank" rel="noreferrer">
+            DataForSEO Labs
+          </a>{" "}
+          account, the report instead shows the keywords the domain (including subdomains) ranks for on Google, sorted by the visits they bring, with position, monthly search volume and estimated traffic.
+        </p>
+        <p>
+          <strong>Market.</strong> Keywords are looked up for the country a site most likely serves: its country-code domain (.co.uk → United Kingdom), else its page language, else the United States.
+        </p>
+      </Section>
+
       <Section id="vitals" title="Core Web Vitals">
         <p>
           Run on demand through Google&apos;s <a href="https://developers.google.com/speed/docs/insights/v5/about" target="_blank" rel="noreferrer">PageSpeed Insights API</a>. Lab scores come from a Lighthouse run on
@@ -190,7 +216,7 @@ export default function Page() {
       <Section id="limits" title="Limitations">
         <ul className="list-disc space-y-2 pl-5">
           <li><strong>No backlink index.</strong> Finding who links to a site requires crawling a large part of the web continuously. There is no free, accurate source, so we don&apos;t pretend.</li>
-          <li><strong>No absolute search volume or keyword difficulty.</strong> These require clickstream data or paid APIs.</li>
+          <li><strong>No absolute search volume or keyword difficulty.</strong> These require clickstream data or paid APIs. Rankings and volumes for the top keywords appear only when a DataForSEO account is connected.</li>
           <li><strong>No rank tracking.</strong> Scraping search results violates search engines&apos; terms; paid SERP APIs are the legitimate route.</li>
           <li><strong>JavaScript-rendered content</strong> isn&apos;t executed by the crawler. If your content only appears after JavaScript runs, we (like many crawlers) may see less than your users do.</li>
           <li><strong>Audits are capped</strong> (default 200 pages per run on the hosted version) to keep the service fair and polite.</li>

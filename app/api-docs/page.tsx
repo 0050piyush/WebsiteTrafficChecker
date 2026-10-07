@@ -11,11 +11,11 @@ const ENDPOINTS: { method: "GET" | "POST"; path: string; summary: string; params
   {
     method: "GET",
     path: "/api/v1/overview",
-    summary: "Everything about a domain: traffic, homepage SEO, tech stack, crawlability, registration, DNS and history.",
+    summary: "Everything about a domain: traffic, top keywords, homepage SEO, tech stack, crawlability, registration, DNS and history.",
     params: [
       ["domain", "Required. A domain or URL, e.g. example.com"],
       ["format", "Optional. json returns one object; the default streams NDJSON, one line per section as it completes."],
-      ["sections", "Optional. Comma-separated subset to run: traffic, homepage, crawlability, registration, dns, history, authority."],
+      ["sections", "Optional. Comma-separated subset to run: traffic, homepage, crawlability, keywords, registration, dns, history, authority."],
     ],
     example: "curl -N 'https://YOUR-HOST/api/v1/overview?domain=example.com'",
   },

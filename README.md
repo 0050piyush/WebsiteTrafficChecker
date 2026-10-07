@@ -10,7 +10,7 @@ It covers the everyday jobs people use paid suites such as Ahrefs for, and it is
 
 | Tool | What it does |
 | --- | --- |
-| **Website traffic checker** (`/traffic`) | Popularity rank and 30-day trend, an estimated monthly-visits *range*, popularity tier, homepage SEO score and search preview, technology stack (130+ fingerprints, each with its evidence), robots.txt and sitemap size, server/TLS/security headers, domain registration (RDAP), DNS and email setup (SPF, DMARC, CAA, providers), archive history, and on-demand Core Web Vitals. Sections stream in as soon as each source answers. |
+| **Website traffic checker** (`/traffic`) | Popularity rank and 30-day trend, an estimated monthly-visits *range*, popularity tier, **top keywords** (the phrases the site targets that people search for, ranked by search demand; real Google positions and volumes with an optional DataForSEO account), homepage SEO score and search preview, technology stack (130+ fingerprints, each with its evidence), robots.txt and sitemap size, server/TLS/security headers, domain registration (RDAP), DNS and email setup (SPF, DMARC, CAA, providers), archive history, and on-demand Core Web Vitals. Sections stream in as soon as each source answers. |
 | **Compare** (`/compare`) | Up to 8 competitors side by side: rank history chart, 30-day movement, visit estimates, CSV export. |
 | **Site audit** (`/audit`) | Live breadth-first crawl (sitemap-aware, robots.txt and crawl-delay respecting) checking **48 issue types**: 4xx/5xx pages, broken internal/external links and images, redirect chains and loops, duplicate/missing titles and descriptions, thin and duplicate content, orphan pages, noindex/canonical conflicts, mixed content, click depth, HTTP→HTTPS and www canonicalization, and more. Health score, status and depth charts, sortable page table, CSV/JSON export. |
 | **On-page SEO checker** (`/analyzer`) | 43 weighted checks with how-to-fix guidance, a **pixel-accurate** Google result preview, heading outline, 1–3-word phrase density, Flesch readability, target-keyword placement, structured data validation, Open Graph preview, redirect chain, TLS and security headers. |
@@ -52,6 +52,7 @@ All free and public. Optional keys unlock two extras.
 | DNS & email | Live DNS queries |
 | History | Internet Archive CDX API |
 | Keyword ideas | Search-engine autocomplete endpoints |
+| Top keywords for a site | Brand, title and headings, scored by how readily autocomplete suggests them; or [DataForSEO Labs](https://dataforseo.com/apis/dataforseo-labs-api) rankings when `DATAFORSEO_LOGIN`/`DATAFORSEO_PASSWORD` are set |
 | Core Web Vitals | Google PageSpeed Insights (Lighthouse + Chrome UX Report). Set `PAGESPEED_API_KEY` for reliable quota. |
 | Authority score (optional) | [Open PageRank](https://www.domcop.com/openpagerank/), when `OPENPAGERANK_API_KEY` is set |
 
@@ -90,6 +91,7 @@ All optional. See [`.env.example`](.env.example).
 | --- | --- |
 | `PAGESPEED_API_KEY` | Google API key with PageSpeed Insights enabled, for Core Web Vitals |
 | `OPENPAGERANK_API_KEY` | Adds an authority score (0–10) to the traffic report |
+| `DATAFORSEO_LOGIN` / `DATAFORSEO_PASSWORD` | Paid, optional: real Google keyword rankings (position, volume, traffic) in the traffic report, about $0.01 per report, cached 24h |
 | `MAX_AUDIT_PAGES` | Hard cap on pages per audit (default 200, max 1000) |
 | `API_RATE_LIMIT_PER_MINUTE` | Per-IP request budget for the API (default 60) |
 | `SITE_URL` | Public base URL, used in `sitemap.xml` and `robots.txt` |

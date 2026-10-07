@@ -8,6 +8,11 @@ import { getWaybackInfo, type WaybackInfo } from "./sources/wayback";
 import { getOpenPageRank, isOpenPageRankEnabled, type AuthorityScore } from "./sources/openpagerank";
 import { estimateMonthlyVisits, popularityTier, type VisitEstimate } from "./traffic-model";
 import { parseRobots, groupFor, robotsAccess, type RobotsAccess } from "./seo/robots";
+import { getRankedKeywords, isDataForSeoEnabled, type RankedKeywords } from "./sources/dataforseo";
+import type { SuggestSource } from "./sources/autocomplete";
+import { estimateSiteKeywords, type TargetKeyword } from "./keywords/site-keywords";
+import { siteMarket, type Market } from "./markets";
+import { stripWww } from "./url";
 
 export interface TrafficSection {
   tranco: TrancoResult;
@@ -41,10 +46,19 @@ export interface CrawlabilitySection {
   };
 }
 
+/**
+ * The keywords a site is found for. With DataForSEO configured these are real Google
+ * rankings; otherwise they're estimated from the homepage and search suggestions.
+ */
+export type KeywordsSection =
+  | ({ source: "dataforseo"; market: Market } & RankedKeywords)
+  | { source: "estimated"; market: Market; engine: SuggestSource; candidates: number; keywords: TargetKeyword[]; jsRendered: boolean; note?: string };
+
 export interface SectionMap {
   traffic: TrafficSection;
   homepage: HomepageSection;
   crawlability: CrawlabilitySection;
+  keywords: KeywordsSection;
   registration: RdapInfo | null;
   dns: DnsInfo;
   history: WaybackInfo;
@@ -57,7 +71,9 @@ export type SectionEvent = {
   [K in SectionName]: { section: K; status: "ok"; data: SectionMap[K]; ms: number } | { section: K; status: "error"; error: string; ms: number };
 }[SectionName];
 
-export const SECTION_NAMES: SectionName[] = ["traffic", "homepage", "crawlability", "registration", "dns", "history", "authority"];
+export const SECTION_NAMES: SectionName[] = ["traffic", "homepage", "crawlability", "keywords", "registration", "dns", "history", "authority"];
+/** Sections built from the homepage fetch; asking for any of them runs them all. */
+export const HOMEPAGE_SECTIONS: SectionName[] = ["homepage", "crawlability", "keywords"];
 
 export function buildTrafficSection(tranco: TrancoResult): TrafficSection {
   const rank = tranco.latest?.rank ?? null;
@@ -142,6 +158,30 @@ async function crawlability(report: Pick<PageReport, "finalUrl" | "robotsTxt">, 
   };
 }
 
+async function topKeywords(target: { hostname: string; domain: string }, home: HomepageSection | null, signal: AbortSignal): Promise<KeywordsSection> {
+  const market = siteMarket(target.domain, home?.seo.lang);
+  let note: string | undefined;
+  if (isDataForSeoEnabled()) {
+    try {
+      // Like Ahrefs' default: the domain including its subdomains (www.x.com → x.com).
+      return { source: "dataforseo", market, ...(await getRankedKeywords(stripWww(target.hostname), market, { signal })) };
+    } catch (err) {
+      if (signal.aborted) throw err;
+      note = `Ranking data is unavailable right now (${(err as Error).message}), so these are estimates.`;
+    }
+  }
+  if (!home) throw new Error("Skipped because the homepage could not be fetched");
+  const site = {
+    domain: target.domain,
+    title: home.seo.title,
+    siteName: home.social.openGraph["og:site_name"] ?? null,
+    headings: home.seo.headings,
+    phrases: [...home.content.keywords.three, ...home.content.keywords.two],
+  };
+  const result = await estimateSiteKeywords(site, market, { signal });
+  return { source: "estimated", market, ...result, jsRendered: home.jsRendered, ...(note ? { note } : {}) };
+}
+
 function trimReport(report: PageReport): HomepageSection {
   const { links, images, ...rest } = report;
   const { items: _l, ...linkStats } = links;
@@ -160,7 +200,7 @@ export function parseSections(raw: string | null): SectionName[] | undefined {
 /**
  * Run the overview sources concurrently, reporting each section as soon as it is ready.
  * `only` limits the run to some sections (used to retry one that failed); crawlability
- * depends on the homepage fetch, so asking for either runs both.
+ * and keywords depend on the homepage fetch, so asking for any of them runs all three.
  */
 export async function runOverview(
   target: { hostname: string; domain: string },
@@ -199,14 +239,18 @@ export async function runOverview(
     }
   };
 
-  // Budgets keep the longest chain (homepage, then crawlability) under the 60s route limit.
+  // Budgets keep the longest chain (homepage, then crawlability or keywords) under the 60s route limit.
   await Promise.all([
     want("traffic") && timed("traffic", 20_000, async () => buildTrafficSection(await getTrancoRanks(target.domain))),
-    (want("homepage") || want("crawlability")) &&
+    HOMEPAGE_SECTIONS.some(want) &&
       (async () => {
         const report = await timed("homepage", 30_000, async (s) => trimReport(await homepageReport(target.hostname, s)));
-        if (report) await timed("crawlability", 20_000, (s) => crawlability(report, s));
-        else emit({ section: "crawlability", status: "error", error: "Skipped because the homepage could not be fetched", ms: 0 });
+        await Promise.all([
+          report
+            ? timed("crawlability", 20_000, (s) => crawlability(report, s))
+            : emit({ section: "crawlability", status: "error", error: "Skipped because the homepage could not be fetched", ms: 0 }),
+          timed("keywords", 20_000, (s) => topKeywords(target, report, s)),
+        ]);
       })(),
     want("registration") && timed("registration", 20_000, () => getRdap(target.domain)),
     want("dns") && timed("dns", 15_000, () => getDnsInfo(target.hostname, target.domain)),

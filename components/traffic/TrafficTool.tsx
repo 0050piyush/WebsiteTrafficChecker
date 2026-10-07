@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, BarChart3, ExternalLink, Globe, History, Link2, Loader2, Lock, Server, ShieldCheck, Stethoscope, Cpu, Gauge, Download } from "lucide-react";
+import { ArrowRight, BarChart3, ExternalLink, Globe, History, Link2, Loader2, Lock, Search, Server, ShieldCheck, Stethoscope, Cpu, Gauge, Download } from "lucide-react";
 import type { SectionMap, SectionName } from "@/lib/overview";
 import { readNdjson, errorMessage } from "@/lib/client/ndjson";
 import { addRecent } from "@/lib/client/recent";
@@ -19,6 +19,7 @@ import { Favicon } from "../report/Favicon";
 import { TechStack } from "../report/TechStack";
 import { ChecksList } from "../report/ChecksList";
 import { PageSpeedPanel } from "../report/PageSpeedPanel";
+import { TopKeywords, keywordsSubtitle } from "./TopKeywords";
 
 type SectionState<K extends SectionName> = { status: "loading" } | { status: "ok"; data: SectionMap[K] } | { status: "error"; error: string };
 type Sections = { [K in SectionName]: SectionState<K> };
@@ -27,6 +28,7 @@ const LOADING: Sections = {
   traffic: { status: "loading" },
   homepage: { status: "loading" },
   crawlability: { status: "loading" },
+  keywords: { status: "loading" },
   registration: { status: "loading" },
   dns: { status: "loading" },
   history: { status: "loading" },
@@ -58,6 +60,8 @@ function withSections(s: OverviewState, names: SectionName[], value: { status: "
 }
 
 const SECTION_KEYS = Object.keys(LOADING) as SectionName[];
+/** Built from one homepage fetch on the server, so they're retried together. */
+const HOMEPAGE_GROUP: SectionName[] = ["homepage", "crawlability", "keywords"];
 
 /** When a stream ends, any section that never reported back gets a retryable error instead of an endless skeleton. */
 function settleUnfinished(s: OverviewState, names: SectionName[] = SECTION_KEYS): OverviewState {
@@ -101,10 +105,10 @@ function useOverview(domain: string): OverviewState & { retry: (section: Section
     };
   }, [domain, handlers]);
 
-  /** Re-run one section (homepage and crawlability are fetched together). */
+  /** Re-run one section (homepage, crawlability and keywords are fetched together). */
   const retry = useCallback(
     (section: SectionName) => {
-      const group: SectionName[] = section === "homepage" || section === "crawlability" ? ["homepage", "crawlability"] : [section];
+      const group: SectionName[] = HOMEPAGE_GROUP.includes(section) ? HOMEPAGE_GROUP : [section];
       const { update, onEvent } = handlers(domain, group);
       update((s) => withSections(s, group, { status: "loading" }));
       const ctrl = new AbortController();
@@ -347,6 +351,18 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
             }
           </SectionBody>
         </div>
+      </Card>
+
+      <Card>
+        <CardHeader
+          title="Top keywords"
+          icon={<Search className="h-4 w-4 text-ink-3" aria-hidden />}
+          subtitle={keywordsSubtitle(s.keywords.status === "ok" ? s.keywords.data : null)}
+          source={s.keywords.status === "ok" && s.keywords.data.source === "dataforseo" ? "DataForSEO" : "title & headings + search suggestions"}
+        />
+        <SectionBody state={s.keywords} rows={5} onRetry={() => retry("keywords")}>
+          {(k) => <TopKeywords data={k} />}
+        </SectionBody>
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
