@@ -13,6 +13,8 @@ export interface DnsInfo {
   dmarcPolicy: string | null;
   mailProvider: string | null;
   dnsProvider: string | null;
+  /** Record types whose lookup failed (timeout/server error), as opposed to simply not existing. */
+  failed: string[];
 }
 
 const MAIL_PROVIDERS: [RegExp, string][] = [
@@ -66,18 +68,26 @@ function detect(names: string[], table: [RegExp, string][]): string | null {
   return null;
 }
 
+// "This record doesn't exist" answers, as opposed to lookups that failed.
+const NO_DATA = new Set(["ENODATA", "ENOTFOUND", "NXDOMAIN"]);
+
 export async function getDnsInfo(hostname: string, domain: string): Promise<DnsInfo> {
-  const resolver = new Resolver({ timeout: 4000, tries: 2 });
-  const safe = <T>(p: Promise<T>, fallback: T) => p.catch(() => fallback);
+  const resolver = new Resolver({ timeout: 2000, tries: 2 });
+  const failed: string[] = [];
+  const safe = <T>(type: string, p: Promise<T>, fallback: T) =>
+    p.catch((err: NodeJS.ErrnoException) => {
+      if (!NO_DATA.has(err.code ?? "")) failed.push(type);
+      return fallback;
+    });
   const [a, aaaa, cname, mx, ns, txt, caa, dmarcTxt] = await Promise.all([
-    safe(resolver.resolve4(hostname), [] as string[]),
-    safe(resolver.resolve6(hostname), [] as string[]),
-    safe(resolver.resolveCname(hostname), [] as string[]),
-    safe(resolver.resolveMx(domain), [] as { exchange: string; priority: number }[]),
-    safe(resolver.resolveNs(domain), [] as string[]),
-    safe(resolver.resolveTxt(domain), [] as string[][]),
-    safe(resolver.resolveCaa(domain), [] as { critical: number; issue?: string; issuewild?: string; iodef?: string }[]),
-    safe(resolver.resolveTxt(`_dmarc.${domain}`), [] as string[][]),
+    safe("A", resolver.resolve4(hostname), [] as string[]),
+    safe("AAAA", resolver.resolve6(hostname), [] as string[]),
+    safe("CNAME", resolver.resolveCname(hostname), [] as string[]),
+    safe("MX", resolver.resolveMx(domain), [] as { exchange: string; priority: number }[]),
+    safe("NS", resolver.resolveNs(domain), [] as string[]),
+    safe("TXT", resolver.resolveTxt(domain), [] as string[][]),
+    safe("CAA", resolver.resolveCaa(domain), [] as { critical: number; issue?: string; issuewild?: string; iodef?: string }[]),
+    safe("DMARC", resolver.resolveTxt(`_dmarc.${domain}`), [] as string[][]),
   ]);
   const txtFlat = txt.map((parts) => parts.join(""));
   const dmarc = dmarcTxt.map((p) => p.join("")).find((t) => /^v=DMARC1/i.test(t)) ?? null;
@@ -95,5 +105,6 @@ export async function getDnsInfo(hostname: string, domain: string): Promise<DnsI
     dmarcPolicy: dmarc ? (/;\s*p=(\w+)/i.exec(dmarc)?.[1]?.toLowerCase() ?? null) : null,
     mailProvider: detect(mxSorted.map((m) => m.exchange), MAIL_PROVIDERS),
     dnsProvider: detect(ns, DNS_PROVIDERS),
+    failed,
   };
 }

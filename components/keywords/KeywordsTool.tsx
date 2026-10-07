@@ -330,7 +330,7 @@ function KeywordResults({ report }: { report: KeywordReport }) {
             </button>
           </div>
         </div>
-        <DataTable rows={rows} columns={columns} rowKey={(i) => i.keyword} initialSort={{ key: "score", dir: "desc" }} pageSize={100} minWidth={640} empty="No keywords match these filters." />
+        <DataTable rows={rows} columns={columns} rowKey={(i) => i.keyword} initialSort={{ key: "score", dir: "desc" }} pageSize={50} minWidth={640} empty="No keywords match these filters." />
         <div className="border-t border-line px-5 py-3">
           <MethodLink anchor="keywords">How the suggest score and intent are computed</MethodLink>
         </div>

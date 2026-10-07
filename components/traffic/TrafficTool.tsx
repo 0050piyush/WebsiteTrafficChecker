@@ -14,6 +14,7 @@ import { ToolForm } from "../ToolForm";
 import { LineChart } from "../charts/LineChart";
 import { Badge, Card, CardHeader, Delta, ErrorNote, KeyValue, MethodLink, PageHeader, ScoreGauge, Skeleton, Stat, StatusPill, cx } from "../ui";
 import { SerpPreview } from "../report/SerpPreview";
+import { Favicon } from "../report/Favicon";
 import { TechStack } from "../report/TechStack";
 import { ChecksList } from "../report/ChecksList";
 import { PageSpeedPanel } from "../report/PageSpeedPanel";
@@ -168,12 +169,7 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-line bg-surface">
-            {home?.seo.favicon ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={home.seo.favicon} alt="" width={22} height={22} referrerPolicy="no-referrer" />
-            ) : (
-              <Globe className="h-5 w-5 text-ink-3" aria-hidden />
-            )}
+            <Favicon src={home?.seo.favicon} size={22} fallback={<Globe className="h-5 w-5 text-ink-3" aria-hidden />} />
           </div>
           <div className="min-w-0">
             <h2 className="truncate text-xl font-semibold text-ink">{hostname}</h2>
@@ -407,8 +403,17 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
                     ["DNS provider", d.dnsProvider ?? (d.ns.length ? d.ns.slice(0, 2).join(", ") : "—")],
                     ["IPv4 / IPv6", `${d.a.length ? d.a.slice(0, 3).join(", ") : "none"}${d.aaaa.length ? ` · ${d.aaaa.length} IPv6` : " · no IPv6"}`],
                     ["Email provider", d.mailProvider ?? (d.mx.length ? d.mx[0].exchange : "No MX records")],
-                    ["SPF", d.spf ? <StatusPill status="pass" label="Published" /> : <StatusPill status="warn" label="Missing" />],
-                    ["DMARC", d.dmarc ? <StatusPill status={d.dmarcPolicy === "none" ? "warn" : "pass"} label={`p=${d.dmarcPolicy ?? "?"}`} /> : <StatusPill status="warn" label="Missing" />],
+                    ["SPF", d.spf ? <StatusPill status="pass" label="Published" /> : d.failed.includes("TXT") ? <StatusPill status="unknown" label="Lookup failed" /> : <StatusPill status="warn" label="Missing" />],
+                    [
+                      "DMARC",
+                      d.dmarc ? (
+                        <StatusPill status={d.dmarcPolicy === "none" ? "warn" : "pass"} label={`p=${d.dmarcPolicy ?? "?"}`} />
+                      ) : d.failed.includes("DMARC") ? (
+                        <StatusPill status="unknown" label="Lookup failed" />
+                      ) : (
+                        <StatusPill status="warn" label="Missing" />
+                      ),
+                    ],
                     ["CAA", d.caa.length ? d.caa.slice(0, 2).join(", ") : "None"],
                   ]}
                 />
@@ -460,24 +465,26 @@ function YearStrip({ years, until }: { years: number[]; until: number }) {
   const all = Array.from({ length: last - first + 1 }, (_, i) => first + i);
   return (
     <div className="mt-4">
-      <div className="flex flex-wrap gap-1" role="list" aria-label="Years with archived snapshots">
-        {all.map((y) => (
-          <span
-            key={y}
-            role="listitem"
-            title={`${y}: ${set.has(y) ? "archived" : "no snapshots"}`}
-            aria-label={`${y}: ${set.has(y) ? "archived" : "no snapshots"}`}
-            className={cx("h-4 w-4 rounded-[3px]", set.has(y) ? "bg-[var(--series-1)]" : "bg-surface-3")}
-          />
-        ))}
+      <div className="inline-block max-w-full">
+        <div className="flex flex-wrap gap-1" role="list" aria-label="Years with archived snapshots">
+          {all.map((y) => (
+            <span
+              key={y}
+              role="listitem"
+              title={`${y}: ${set.has(y) ? "archived" : "no snapshots"}`}
+              aria-label={`${y}: ${set.has(y) ? "archived" : "no snapshots"}`}
+              className={cx("h-4 w-4 rounded-[3px]", set.has(y) ? "bg-[var(--series-1)]" : "bg-surface-3")}
+            />
+          ))}
+        </div>
+        <div className="mt-1 flex justify-between text-xs text-ink-3">
+          <span>{first}</span>
+          <span>{last}</span>
+        </div>
       </div>
-      <div className="mt-1.5 flex justify-between text-xs text-ink-3">
-        <span>{first}</span>
-        <span className="flex items-center gap-3">
-          <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-[2px] bg-[var(--series-1)]" aria-hidden />Archived</span>
-          <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-[2px] bg-surface-3" aria-hidden />No snapshots</span>
-        </span>
-        <span>{last}</span>
+      <div className="mt-2 flex items-center gap-3 text-xs text-ink-3">
+        <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-[2px] bg-[var(--series-1)]" aria-hidden />Archived</span>
+        <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-[2px] bg-surface-3" aria-hidden />No snapshots</span>
       </div>
     </div>
   );

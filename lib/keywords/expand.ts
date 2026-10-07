@@ -106,6 +106,7 @@ export function aggregateSuggestions(
 
 /** Group ideas by their most common modifier term (the word that isn't the seed). */
 export function assignClusters(seed: string, ideas: KeywordIdea[]): void {
+  // Ideas with no distinctive modifier (or one used only once) fall into "Other".
   const seedTokens = new Set(tokenize(seed));
   const termsOf = (k: string) =>
     [...new Set(tokenize(k).filter((t) => !seedTokens.has(t) && !STOPWORDS.has(t) && t.length > 2 && !QUESTION_WORDS.includes(t) && !CLUSTER_IGNORE.has(t) && !/^\d+$/.test(t)))];
@@ -114,7 +115,7 @@ export function assignClusters(seed: string, ideas: KeywordIdea[]): void {
   for (const idea of ideas) {
     const terms = termsOf(idea.keyword).filter((t) => (df.get(t) ?? 0) >= 2);
     terms.sort((a, b) => (df.get(b) ?? 0) - (df.get(a) ?? 0) || a.localeCompare(b));
-    idea.cluster = terms[0] ?? (termsOf(idea.keyword).length ? "Other" : seed);
+    idea.cluster = terms[0] ?? "Other";
   }
 }
 

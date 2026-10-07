@@ -128,9 +128,9 @@ function PageReportView({ report: r }: { report: PageReport }) {
         />
         <div className="p-5">
           {tab === "checks" && (
-            <div className="grid gap-x-10 gap-y-6 md:grid-cols-2">
+            <div className="gap-10 md:columns-2">
               {categories.map((cat) => (
-                <div key={cat}>
+                <div key={cat} className="mb-6 break-inside-avoid">
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-3">{cat}</h3>
                   <ChecksList checks={r.checks.filter((c) => c.category === cat)} />
                 </div>

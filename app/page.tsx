@@ -15,7 +15,7 @@ const TOOLS = [
 
 const WHY = [
   { icon: Eye, title: "Every number shows its work", body: "Each metric names its source and links to the method behind it. Estimates come with ranges, not false precision." },
-  { icon: Zap, title: "Live, not stale", body: "Audits and page checks fetch the site right now, instead of showing you a crawl from weeks ago." },
+  { icon: Zap, title: "Live, not stale", body: "Audits and page checks fetch the site right now, instead of reading from a stored index." },
   { icon: Lock, title: "No sign-up, no paywall", body: "Every tool is free to use without an account, a credit card or a captcha wall." },
   { icon: Download, title: "Export everything", body: "CSV and JSON exports on every table. Shareable links for every report." },
   { icon: Code2, title: "Open source & self-hostable", body: "Run it on your own server, read the code, or extend it. MIT licensed." },
@@ -24,15 +24,15 @@ const WHY = [
 
 const COMPARISON: [string, string | boolean, string | boolean][] = [
   ["Price", "Free, open source", "Paid subscription"],
-  ["Account required", false, true],
-  ["Site audit data", "Live crawl on demand", "Scheduled crawls"],
+  ["Use without an account", true, false],
+  ["Site audit", "Live crawl, no setup", "Project setup and crawl quotas"],
   ["On-page SEO checks", true, true],
   ["Keyword ideas", "Live autocomplete from 5 engines", "Proprietary database"],
   ["Search volume & keyword difficulty", "Relative score only", true],
-  ["Traffic estimates", "Rank-based range, method published", "Model-based, method proprietary"],
+  ["Traffic estimates", "Rank-based range, model published", "Model-based single number"],
   ["Backlink index", false, true],
   ["Rank tracking", false, true],
-  ["Method shown for every metric", true, false],
+  ["Method linked from every metric", true, "Partially"],
   ["Self-hosting & full API", true, "API on higher tiers"],
 ];
 
