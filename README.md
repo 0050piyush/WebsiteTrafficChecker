@@ -114,6 +114,12 @@ All optional. See [`.env.example`](.env.example).
 
 Deploying to a serverless platform works, but long audits need a function time limit of a few minutes (`maxDuration` is set to 300s on the audit route). A long-running Node server or container is the best fit.
 
+## Blog and newsroom
+
+`/blog` publishes the day's biggest tech stories. Posts are Markdown files in [`content/blog`](content/blog) with front matter for sources, key facts (each confirmed by two independent sources) and an auto-generated cover image (`/blog/<slug>/cover.png`, built with `next/og`). Pages are static, with NewsArticle structured data, an RSS feed at `/blog/rss.xml`, sitemap entries and `max-image-preview:large` for Google Discover.
+
+`tests/blog.test.ts` is the publishing gate: it rejects posts with missing or single-site sources, unverified key facts, banned filler phrases, bad dates or covers. The editorial rules and the step-by-step procedure for the scheduled newsroom routine are in [`docs/newsroom.md`](docs/newsroom.md); `.claude/settings.json` pre-approves the commands that routine needs.
+
 ## Safety and politeness
 
 - **SSRF protection:** every user-supplied URL is validated (http/https only, ports 80/443/8080/8443, no credentials, no private/loopback/link-local/metadata addresses). The DNS check runs *at connect time* on every redirect hop, so DNS rebinding and redirects to internal hosts are refused too (`lib/net/guard.ts`).
@@ -147,6 +153,9 @@ lib/sources/         Tranco, RDAP, DNS, Wayback, PageSpeed, Open PageRank, autoc
 lib/traffic-model.ts Rank → visits model
 lib/plans.ts         Pricing plans and the feature comparison table
 lib/faq.ts, lib/pages.ts  FAQ content and the page list behind the footer and sitemaps
+lib/blog/            Post loader, validation and house-style rules
+content/blog/        Blog posts (Markdown)
+docs/newsroom.md     Editorial rules and the newsroom routine's procedure
 tests/               Vitest unit tests + integration tests against a local fixture website
 ```
 

@@ -4,8 +4,10 @@ import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PAGE_GROUPS } from "@/lib/pages";
 import { SITE } from "@/lib/site";
+import { siteUrl } from "@/lib/site-url";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl()),
   title: {
     default: "TrafficLens — Free Website Traffic Checker & SEO Toolkit",
     template: "%s · TrafficLens",
@@ -13,6 +15,7 @@ export const metadata: Metadata = {
   description:
     "Check any website's traffic, audit its SEO, analyze pages and find keyword ideas. Free, no sign-up, open source, and every metric explains its source.",
   applicationName: "TrafficLens",
+  robots: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 },
   openGraph: {
     title: "TrafficLens — Free Website Traffic Checker & SEO Toolkit",
     description: "Traffic estimates, live site audits, on-page SEO checks and keyword ideas. Free and open source.",

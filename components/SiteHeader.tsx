@@ -17,6 +17,7 @@ export const NAV = [
 ];
 
 const MORE = [
+  { href: "/blog", label: "Blog" },
   { href: "/faq", label: "FAQ" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
@@ -120,6 +121,16 @@ export function SiteHeader() {
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-1">
+          <Link
+            href="/blog"
+            aria-current={pathname?.startsWith("/blog") ? "page" : undefined}
+            className={cx(
+              "hidden rounded-lg px-3 py-1.5 text-sm hover:bg-surface-2 hover:text-ink lg:inline-block",
+              pathname?.startsWith("/blog") ? "bg-surface-2 font-medium text-ink" : "text-ink-2",
+            )}
+          >
+            Blog
+          </Link>
           <Link href="/api-docs" className="hidden rounded-lg px-3 py-1.5 text-sm text-ink-2 hover:bg-surface-2 hover:text-ink xl:inline-block">
             API
           </Link>

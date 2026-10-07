@@ -21,6 +21,7 @@ export const PAGE_GROUPS: { title: string; pages: SitePage[] }[] = [
   {
     title: "Learn",
     pages: [
+      { href: "/blog", label: "Blog", description: "The day's biggest tech stories, checked and explained.", index: true },
       { href: "/methodology", label: "Methodology & data sources", description: "Exactly how every metric is calculated.", index: true },
       { href: "/faq", label: "FAQ", description: "Answers to common questions.", index: true },
       { href: "/api-docs", label: "REST API", description: "Use every tool from your own code.", index: true },
