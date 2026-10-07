@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 export interface LineSeries {
   id: string;
@@ -20,22 +20,26 @@ interface Props {
   area?: boolean;
   /** Formats values. For axis ticks on a linear scale `step` is the tick spacing, so labels can carry enough precision to stay distinct. */
   yFormat: (n: number, step?: number) => string;
+  /** Values are whole numbers (ranks, counts): ticks are never fractional, so labels never repeat. */
+  integer?: boolean;
   xFormat: (x: string) => string;
   ariaLabel: string;
 }
 
 const M = { top: 12, right: 16, bottom: 26, left: 58 };
 
-function niceLinearTicks(min: number, max: number, count = 4) {
+export function niceLinearTicks(min: number, max: number, count = 4, integer = false) {
   if (min === max) {
-    const pad = Math.abs(min) * 0.05 || 1;
+    const pad = integer ? 1 : Math.abs(min) * 0.05 || 1;
     min -= pad;
     max += pad;
   }
   const raw = (max - min) / count;
   const mag = 10 ** Math.floor(Math.log10(raw));
   const norm = raw / mag;
-  const step = (norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10) * mag;
+  let step = (norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10) * mag;
+  // Whole-number data (ranks) can't have ticks at 10.4, 10.6…: they'd all print as "11".
+  if (integer) step = Math.max(1, Math.round(step));
   const lo = Math.floor(min / step) * step;
   const hi = Math.ceil(max / step) * step;
   const ticks: number[] = [];
@@ -55,15 +59,18 @@ function logTicks(min: number, max: number) {
   return { lo: 10 ** lo, hi: 10 ** hi, ticks: ticks.sort((a, b) => a - b) };
 }
 
-export function LineChart({ series, height = 240, invertY, logY, area, yFormat, xFormat, ariaLabel }: Props) {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(640);
+export function LineChart({ series, height = 240, invertY, logY, area, yFormat, xFormat, ariaLabel, integer }: Props) {
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  // Unknown until measured: drawing at a guessed width would push the page wider than a
+  // phone screen for a moment, and iOS Safari then stays zoomed out.
+  const [measured, setMeasured] = useState<number | null>(null);
+  const width = measured ?? 0;
   const [hover, setHover] = useState<number | null>(null);
 
-  useEffect(() => {
-    const el = wrapRef.current;
+  const measureRef = useCallback((el: HTMLDivElement | null) => {
+    wrapRef.current = el;
     if (!el) return;
-    const ro = new ResizeObserver(([entry]) => setWidth(Math.max(280, Math.floor(entry.contentRect.width))));
+    const ro = new ResizeObserver(([entry]) => setMeasured(Math.max(160, Math.floor(entry.contentRect.width))));
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
@@ -73,7 +80,9 @@ export function LineChart({ series, height = 240, invertY, logY, area, yFormat, 
   const values = series.flatMap((s) => s.points.map((p) => p.y).filter((v): v is number => v !== null && Number.isFinite(v)));
   const vMin = values.length ? Math.min(...values) : 0;
   const vMax = values.length ? Math.max(...values) : 1;
-  const scale = logY ? logTicks(vMin, vMax) : niceLinearTicks(invertY ? Math.max(0, vMin) : Math.min(0, vMin), vMax);
+  const scale = logY ? logTicks(vMin, vMax) : niceLinearTicks(invertY ? Math.max(0, vMin) : Math.min(0, vMin), vMax, 4, integer);
+  // Ranks start at #1; a padded axis shouldn't show "#0".
+  const yTicks = integer && invertY ? scale.ticks.filter((v) => v >= 1) : scale.ticks;
 
   const tickStep = !logY && scale.ticks.length > 1 ? scale.ticks[1] - scale.ticks[0] : undefined;
   const innerW = width - M.left - M.right;
@@ -130,10 +139,13 @@ export function LineChart({ series, height = 240, invertY, logY, area, yFormat, 
   const flip = hover !== null && hx + 12 + 190 > width;
 
   return (
-    <div ref={wrapRef} className="relative w-full select-none">
+    <div ref={measureRef} className="relative w-full min-w-0 select-none" style={{ minHeight: height }}>
+      {measured !== null && (
       <svg
         width={width}
         height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        style={{ maxWidth: "100%", height: "auto" }}
         role="img"
         aria-label={ariaLabel}
         tabIndex={0}
@@ -144,7 +156,7 @@ export function LineChart({ series, height = 240, invertY, logY, area, yFormat, 
         onPointerLeave={() => setHover(null)}
         onPointerDown={(e) => onMove(e.clientX)}
       >
-        {scale.ticks.map((v) => (
+        {yTicks.map((v) => (
           <g key={v}>
             <line x1={M.left} x2={width - M.right} y1={yAt(v)} y2={yAt(v)} stroke="var(--chart-grid)" strokeWidth={1} />
             <text x={M.left - 8} y={yAt(v)} dy="0.32em" textAnchor="end" fontSize={11} fill="var(--chart-label)" className="tabular">
@@ -182,6 +194,7 @@ export function LineChart({ series, height = 240, invertY, logY, area, yFormat, 
           </g>
         )}
       </svg>
+      )}
       {hover !== null && (
         <div
           className="pointer-events-none absolute top-2 z-10 min-w-40 rounded-lg border border-line bg-surface px-3 py-2 text-xs shadow-lg"

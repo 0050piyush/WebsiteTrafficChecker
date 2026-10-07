@@ -330,6 +330,7 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
                   <LineChart
                     series={chartSeries}
                     invertY={metric === "rank"}
+                    integer={metric === "rank"}
                     area={metric === "visits"}
                     yFormat={(n, step) =>
                       metric === "rank" ? (n >= 1_000_000 ? `#${fmtCompact(n)}` : `#${fmtNumber(n)}`) : step === undefined ? fmtCompact(n) : fmtAxis(n, step)

@@ -153,6 +153,7 @@ export function CompareTool() {
                   <LineChart
                     series={series}
                     invertY
+                    integer
                     logY={useLog}
                     height={280}
                     yFormat={(n) => (useLog || n >= 1_000_000 ? `#${fmtCompact(n)}` : `#${fmtNumber(n)}`)}

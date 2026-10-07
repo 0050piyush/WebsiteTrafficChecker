@@ -122,6 +122,9 @@ body {
   color: var(--ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  /* Anything wider than the screen is clipped instead of widening the page, which makes
+     mobile Safari zoom out. "clip" (unlike "hidden") keeps the sticky header working. */
+  overflow-x: clip;
 }
 
 ::selection {
