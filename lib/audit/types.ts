@@ -99,6 +99,8 @@ export interface AuditReport {
   };
   site: {
     robotsFound: boolean;
+    /** robots.txt disallows our crawler (TrafficLensBot) from the start page. */
+    blockedForCrawler: boolean;
     crawlDelay: number | null;
     sitemaps: string[];
     httpsRedirect: "redirects" | "no-redirect" | "unreachable" | "n/a";

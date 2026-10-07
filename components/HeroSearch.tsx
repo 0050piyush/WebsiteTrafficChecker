@@ -2,7 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { BarChart3, FileSearch, Search, Sparkles, Stethoscope } from "lucide-react";
+import { BarChart3, ExternalLink, FileSearch, Search, Sparkles, Stethoscope } from "lucide-react";
+import { displayQuery, siteUrlFor } from "@/lib/client/site";
+import { RecentSearches } from "./RecentSearches";
 import { cx } from "./ui";
 
 const TOOLS = [
@@ -17,6 +19,7 @@ export function HeroSearch() {
   const [tool, setTool] = useState<(typeof TOOLS)[number]["id"]>("traffic");
   const [value, setValue] = useState("");
   const active = TOOLS.find((t) => t.id === tool)!;
+  const siteUrl = tool === "keywords" ? null : siteUrlFor(value);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,10 +62,24 @@ export function HeroSearch() {
           spellCheck={false}
           className="h-11 min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-ink-3"
         />
+        {siteUrl && (
+          <a
+            href={siteUrl}
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-accent-ink hover:bg-accent-soft"
+            title={`Open ${displayQuery(siteUrl)} in a new tab`}
+          >
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+            <span className="hidden sm:inline">Open site</span>
+            <span className="sr-only sm:hidden">Open site in a new tab</span>
+          </a>
+        )}
         <button type="submit" className="h-11 shrink-0 rounded-lg bg-accent px-5 text-sm font-medium text-on-accent hover:bg-accent-hover">
           Analyze
         </button>
       </form>
+      <RecentSearches className="mt-4 justify-center" />
       <p className="mt-3 text-center text-xs text-ink-3">
         Try{" "}
         {["wikipedia.org", "github.com", "bbc.co.uk"].map((d, i) => (

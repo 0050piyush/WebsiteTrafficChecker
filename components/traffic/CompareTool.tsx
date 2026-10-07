@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { Download, GitCompare, Loader2, Plus, X } from "lucide-react";
+import { Download, ExternalLink, GitCompare, Loader2, Plus, X } from "lucide-react";
 import type { TrafficSection } from "@/lib/overview";
 import { errorMessage } from "@/lib/client/ndjson";
 import { download, toCsv } from "@/lib/client/csv";
 import { addRecent } from "@/lib/client/recent";
+import { displayQuery, siteUrlFor } from "@/lib/client/site";
+import { RecentSearches } from "../RecentSearches";
 import { fmtCompact, fmtDate, fmtRank } from "@/lib/client/format";
 import { LineChart, Legend } from "../charts/LineChart";
 import { Card, CardHeader, Delta, ErrorNote, MethodLink, PageHeader, Skeleton } from "../ui";
@@ -103,6 +105,11 @@ export function CompareTool() {
                 autoComplete="off"
                 spellCheck={false}
               />
+              {siteUrlFor(v) && (
+                <a href={siteUrlFor(v)!} target="_blank" rel="noopener noreferrer nofollow" className="text-ink-3 hover:text-accent-ink" title={`Open ${displayQuery(v)} in a new tab`} aria-label={`Open ${displayQuery(v)} in a new tab`}>
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              )}
               {inputs.length > 1 && (
                 <button type="button" onClick={() => setInputs((list) => list.filter((_, j) => j !== i))} className="text-ink-3 hover:text-ink" aria-label={`Remove domain ${i + 1}`}>
                   <X className="h-4 w-4" />
@@ -123,6 +130,7 @@ export function CompareTool() {
           )}
         </div>
       </form>
+      <RecentSearches tool="compare" exclude={key} className="-mt-3 mb-6" />
 
       {state.error && <ErrorNote message={state.error} />}
       {state.loading && (
@@ -186,6 +194,11 @@ export function CompareTool() {
                         <span className="flex items-center gap-2 font-medium text-ink">
                           <span className="inline-block h-0.5 w-4 rounded" style={{ background: r.color }} aria-hidden />
                           {r.domain ?? r.input}
+                          {r.domain && (
+                            <a href={`https://${r.domain}/`} target="_blank" rel="noopener noreferrer nofollow" className="text-ink-3 hover:text-accent-ink" title={`Open ${r.domain} in a new tab`} aria-label={`Open ${r.domain} in a new tab`}>
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
+                          )}
                         </span>
                       </td>
                       {r.ok ? (

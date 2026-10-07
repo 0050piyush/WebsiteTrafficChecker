@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { Loader2, Search } from "lucide-react";
+import { ExternalLink, Loader2, Search } from "lucide-react";
+import { displayQuery, siteUrlFor } from "@/lib/client/site";
 
 export function ToolForm({
   initial,
@@ -12,6 +13,7 @@ export function ToolForm({
   onSubmit,
   children,
   inputMode,
+  openSite,
 }: {
   initial: string;
   placeholder: string;
@@ -21,8 +23,11 @@ export function ToolForm({
   onSubmit: (value: string) => void;
   children?: ReactNode;
   inputMode?: "url" | "text";
+  /** Show a link that opens the typed website in a new tab. */
+  openSite?: boolean;
 }) {
   const [value, setValue] = useState(initial);
+  const siteUrl = openSite ? siteUrlFor(value) : null;
   // Keep the box in sync when the URL changes (back/forward navigation).
   const [prevInitial, setPrevInitial] = useState(initial);
   if (initial !== prevInitial) {
@@ -58,6 +63,19 @@ export function ToolForm({
             inputMode={inputMode === "url" ? "url" : "text"}
             className="h-11 min-w-0 flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-3"
           />
+          {siteUrl && (
+            <a
+              href={siteUrl}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-accent-ink hover:bg-accent-soft"
+              title={`Open ${displayQuery(siteUrl)} in a new tab`}
+            >
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+              <span className="hidden sm:inline">Open site</span>
+              <span className="sr-only sm:hidden">Open site in a new tab</span>
+            </a>
+          )}
         </div>
         <button
           type="submit"

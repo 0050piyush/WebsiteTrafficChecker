@@ -95,6 +95,14 @@ export async function runAudit(startInput: string, options: AuditOptions, emit: 
   const effectiveDelayMs = options.respectRobots && crawlDelay ? Math.min(crawlDelay, 5) * 1000 : 0;
   const concurrency = effectiveDelayMs ? 1 : Math.min(Math.max(1, options.concurrency), 5);
   if (effectiveDelayMs) emit({ type: "info", message: `robots.txt asks for a ${crawlDelay}s crawl delay; crawling one page at a time.` });
+  // Many large sites allow search engines but block every other bot, including ours.
+  const blockedForCrawler = options.respectRobots && !!robots && !isAllowed(robots, finalUrl, BOT_TOKEN);
+  if (blockedForCrawler) {
+    emit({
+      type: "info",
+      message: "This site's robots.txt doesn't allow TrafficLensBot to crawl it, so the audit can't go past the start page. If this is your site, turn off “Respect robots.txt” and run it again.",
+    });
+  }
 
   // 3. Sitemaps
   const sitemapRoots = robots?.sitemaps.length ? robots.sitemaps.slice(0, 5) : [`${scope.origin}/sitemap.xml`];
@@ -452,7 +460,7 @@ export async function runAudit(startInput: string, options: AuditOptions, emit: 
       discoveredNotCrawled,
       cancelled: !!signal?.aborted,
     },
-    site: { robotsFound: !!robots, crawlDelay, sitemaps: robots?.sitemaps ?? (sitemapFound ? sitemapRoots : []), httpsRedirect, hostCanonicalization },
+    site: { robotsFound: !!robots, blockedForCrawler, crawlDelay, sitemaps: robots?.sitemaps ?? (sitemapFound ? sitemapRoots : []), httpsRedirect, hostCanonicalization },
     issues,
     pages: pageList,
     externalLinks: externalResults.sort((a, b) => a.status - b.status),

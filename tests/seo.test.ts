@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { extractPage, robotsDirectives } from "@/lib/seo/extract";
+import { extractPage, looksClientRendered, robotsDirectives } from "@/lib/seo/extract";
 import { runChecks } from "@/lib/seo/checks";
 import { detectTechnologies } from "@/lib/seo/tech";
-import { isAllowed, parseRobots, groupFor } from "@/lib/seo/robots";
+import { isAllowed, parseRobots, groupFor, robotsAccess } from "@/lib/seo/robots";
 import { parseSitemap, sitemapBodyToText } from "@/lib/seo/sitemap";
 import { countSyllables, readability, textPixelWidth, topNGrams, truncateToPixels } from "@/lib/seo/text";
 import { gzipSync } from "node:zlib";
@@ -76,6 +76,14 @@ describe("extractPage", () => {
     expect(page.mainText.startsWith("Best running shoes Skipped level Running")).toBe(true);
   });
 
+  it("detects JavaScript-rendered shells but not content pages", () => {
+    const shellHtml = `<html><body><div id="root"></div><script src="/a.js"></script></body></html>`;
+    expect(looksClientRendered(shellHtml, extractPage(shellHtml, "https://e.com/"))).toBe(true);
+    const noscriptHtml = `<html><body><noscript>You need to enable JavaScript to run this app.</noscript><div id="app">Loading</div></body></html>`;
+    expect(looksClientRendered(noscriptHtml, extractPage(noscriptHtml, "https://e.com/"))).toBe(true);
+    expect(looksClientRendered(HTML, page)).toBe(false);
+  });
+
   it("parses robots directives from meta and headers", () => {
     expect(robotsDirectives("noindex, follow", null).noindex).toBe(true);
     expect(robotsDirectives(null, "googlebot: noindex").noindex).toBe(true);
@@ -98,7 +106,7 @@ describe("runChecks", () => {
     page,
     noindex: false,
     noindexSource: null,
-    robotsAllowed: true,
+    robotsAccess: { googlebot: true, bingbot: true, otherBots: true },
   };
 
   it("scores a mostly healthy page and flags real problems", () => {
@@ -120,10 +128,30 @@ describe("runChecks", () => {
     expect(score).toBeLessThan(100);
   });
 
-  it("fails noindex, non-200 and robots-blocked pages", () => {
-    const { checks, score } = runChecks({ ...base, status: 404, noindex: true, noindexSource: "meta robots tag", robotsAllowed: false });
+  it("fails noindex, non-200 and Googlebot-blocked pages", () => {
+    const { checks, score } = runChecks({ ...base, status: 404, noindex: true, noindexSource: "meta robots tag", robotsAccess: { googlebot: false, bingbot: false, otherBots: false } });
     for (const id of ["http-status", "indexable", "robots-txt"]) expect(checks.find((c) => c.id === id)?.status).toBe("fail");
     expect(score).toBeLessThan(runChecks(base).score);
+  });
+
+  it("does not penalize sites that only block non-search bots", () => {
+    const { checks } = runChecks({ ...base, robotsAccess: { googlebot: true, bingbot: true, otherBots: false } });
+    const robots = checks.find((c) => c.id === "robots-txt")!;
+    expect(robots.status).toBe("pass");
+    expect(robots.message).toMatch(/Other bots are blocked/);
+    expect(runChecks({ ...base, robotsAccess: { googlebot: true, bingbot: false, otherBots: false } }).checks.find((c) => c.id === "robots-txt")?.status).toBe("warn");
+    expect(runChecks({ ...base, robotsAccess: null }).checks.find((c) => c.id === "robots-txt")).toBeUndefined();
+  });
+
+  it("treats missing headings and text on JavaScript-built pages as warnings", () => {
+    const shell = extractPage(`<!doctype html><html lang="en"><head><title>App</title></head><body><div id="root"></div><script src="/app.js"></script></body></html>`, "https://example.com/");
+    const plain = runChecks({ ...base, page: shell });
+    expect(plain.checks.find((c) => c.id === "h1")?.status).toBe("fail");
+    expect(plain.checks.find((c) => c.id === "js-rendering")).toBeUndefined();
+    const js = runChecks({ ...base, page: shell, jsRendered: true });
+    expect(js.checks.find((c) => c.id === "h1")?.status).toBe("warn");
+    expect(js.checks.find((c) => c.id === "word-count")?.status).toBe("warn");
+    expect(js.checks.find((c) => c.id === "js-rendering")?.status).toBe("warn");
   });
 
   it("evaluates keyword placement", () => {
@@ -188,6 +216,21 @@ Dissallow: /typo
     expect(isAllowed(robots, "https://example.com/search?q=1", ua)).toBe(false);
     expect(isAllowed(robots, "https://example.com/", ua)).toBe(true);
     expect(isAllowed(robots, "https://example.com/robots.txt", ua)).toBe(true);
+  });
+
+  it("separates search engines from other bots (instagram.com-style robots.txt)", () => {
+    const ig = parseRobots(`User-agent: Googlebot
+Disallow: /api/
+
+User-agent: Bingbot
+Disallow: /api/
+
+User-agent: *
+Disallow: /
+`);
+    expect(robotsAccess(ig, "https://www.instagram.com/")).toEqual({ googlebot: true, bingbot: true, otherBots: false });
+    expect(robotsAccess(ig, "https://www.instagram.com/api/v1/x")).toEqual({ googlebot: false, bingbot: false, otherBots: false });
+    expect(robotsAccess(null, "https://e.com/")).toEqual({ googlebot: true, bingbot: true, otherBots: true });
   });
 
   it("treats an empty disallow as allow-all", () => {

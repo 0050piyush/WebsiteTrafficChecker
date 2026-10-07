@@ -1,4 +1,5 @@
 import type { ExtractedPage } from "./extract";
+import type { RobotsAccess } from "./robots";
 import { SERP_DESCRIPTION_MAX_PX, SERP_TITLE_MAX_PX, textPixelWidth, tokenize } from "./text";
 
 export type CheckStatus = "pass" | "warn" | "fail" | "info";
@@ -28,7 +29,10 @@ export interface CheckInput {
   page: ExtractedPage;
   noindex: boolean;
   noindexSource: string | null;
-  robotsAllowed: boolean | null;
+  /** Per-bot robots.txt verdict for this URL; null when robots.txt couldn't be fetched. */
+  robotsAccess: RobotsAccess | null;
+  /** Content is built by JavaScript; heading/content checks only see the server's HTML. */
+  jsRendered?: boolean;
   keyword?: string;
 }
 
@@ -72,20 +76,44 @@ export function runChecks(input: CheckInput): { checks: Check[]; score: number }
       : { id: "indexable", category: "Indexing", title: "Indexability", status: "pass", value: "indexable", message: "No noindex directive in meta tags or X-Robots-Tag header.", weight: 3 },
   );
 
-  if (input.robotsAllowed !== null) {
-    add(
-      input.robotsAllowed
-        ? { id: "robots-txt", category: "Indexing", title: "robots.txt", status: "pass", message: "robots.txt allows crawling this URL.", weight: 3 }
-        : {
-            id: "robots-txt",
-            category: "Indexing",
-            title: "robots.txt",
-            status: "fail",
-            message: "robots.txt blocks crawlers from this URL, so its content can't be read by search engines.",
-            fix: "Remove or narrow the Disallow rule that matches this path.",
-            weight: 3,
-          },
-    );
+  // Judge crawlability by the search engine bots; blocking other bots is a legitimate choice.
+  const access = input.robotsAccess;
+  if (access) {
+    if (!access.googlebot) {
+      add({
+        id: "robots-txt",
+        category: "Indexing",
+        title: "robots.txt",
+        status: "fail",
+        value: "Googlebot blocked",
+        message: "robots.txt blocks Googlebot from this URL, so Google can't read its content.",
+        fix: "Remove or narrow the Disallow rule that matches this path for Googlebot.",
+        weight: 3,
+      });
+    } else if (!access.bingbot) {
+      add({
+        id: "robots-txt",
+        category: "Indexing",
+        title: "robots.txt",
+        status: "warn",
+        value: "Bingbot blocked",
+        message: "Googlebot may crawl this URL, but Bingbot is blocked. Bing, Yahoo and DuckDuckGo results rely on Bing's crawler.",
+        fix: "Allow Bingbot if you want to appear in Bing-powered search results.",
+        weight: 3,
+      });
+    } else {
+      add({
+        id: "robots-txt",
+        category: "Indexing",
+        title: "robots.txt",
+        status: "pass",
+        value: access.otherBots ? undefined : "other bots blocked",
+        message: access.otherBots
+          ? "robots.txt lets search engines crawl this URL."
+          : "Googlebot and Bingbot may crawl this URL. Other bots are blocked, which is the site's choice and doesn't affect search rankings.",
+        weight: 3,
+      });
+    }
   }
 
   if (!page.canonical) {
@@ -239,12 +267,31 @@ export function runChecks(input: CheckInput): { checks: Check[]; score: number }
   }
 
   // ---------- Content ----------
+  // For JavaScript-built pages we only see the server's HTML, so missing headings and
+  // text are likely added in the browser: report them as warnings, not failures.
+  const js = !!input.jsRendered;
+  if (js) {
+    add({
+      id: "js-rendering",
+      category: "Content",
+      title: "JavaScript rendering",
+      status: "warn",
+      value: "content built in the browser",
+      message:
+        "This page sends a near-empty HTML shell and builds its content with JavaScript. Google renders JavaScript, but other search engines, link previews and AI crawlers may see an almost empty page. The heading and content checks below reflect the HTML the server sends.",
+      fix: "Server-side render or pre-render the main content.",
+      weight: 1,
+    });
+  }
+
   const h1Count = page.h1.length;
   add(
     h1Count === 1
       ? { id: "h1", category: "Content", title: "H1 heading", status: "pass", value: page.h1[0].slice(0, 80) || "(empty)", message: "Exactly one H1 heading.", weight: 2 }
       : h1Count === 0
-        ? { id: "h1", category: "Content", title: "H1 heading", status: "fail", message: "No H1 heading. The H1 tells readers and search engines what the page is about.", fix: "Add one H1 that summarizes the page.", weight: 2 }
+        ? js
+          ? { id: "h1", category: "Content", title: "H1 heading", status: "warn", value: "none in server HTML", message: "No H1 in the HTML the server sends. This page builds its content with JavaScript, so an H1 may only appear after rendering.", fix: "Include the H1 in the server-rendered HTML.", weight: 2 }
+          : { id: "h1", category: "Content", title: "H1 heading", status: "fail", message: "No H1 heading. The H1 tells readers and search engines what the page is about.", fix: "Add one H1 that summarizes the page.", weight: 2 }
         : { id: "h1", category: "Content", title: "H1 heading", status: "warn", value: `${h1Count} H1s`, message: "Multiple H1 headings dilute the main topic signal.", fix: "Use one H1 and demote the others to H2.", weight: 2 },
   );
 
@@ -264,6 +311,8 @@ export function runChecks(input: CheckInput): { checks: Check[]; score: number }
   add(
     words >= 300
       ? { id: "word-count", category: "Content", title: "Content length", status: "pass", value: `${words.toLocaleString("en-US")} words`, message: "The page has a substantial amount of text.", weight: 2 }
+      : js
+        ? { id: "word-count", category: "Content", title: "Content length", status: "warn", value: `${words} words in server HTML`, message: "Little text in the HTML the server sends; most of the content is likely added by JavaScript.", fix: "Server-render the main content so every crawler can read it.", weight: 2 }
       : words >= 50
         ? { id: "word-count", category: "Content", title: "Content length", status: "warn", value: `${words} words`, message: "Thin content. Pages that rank usually answer the query in depth.", fix: "Expand the content if this page should rank for informational queries.", weight: 2 }
         : { id: "word-count", category: "Content", title: "Content length", status: "fail", value: `${words} words`, message: "Almost no indexable text. If content is rendered by JavaScript, search engines may see an empty page.", fix: "Server-render the main content or add descriptive text.", weight: 2 },

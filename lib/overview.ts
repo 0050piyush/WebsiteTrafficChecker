@@ -1,13 +1,13 @@
 import { analyzePage, AnalyzeError, type PageReport } from "./seo/analyze";
 import { collectSitemapUrls } from "./seo/sitemap";
-import { BOT_TOKEN, fetchUrl } from "./net/fetcher";
+import { fetchUrl } from "./net/fetcher";
 import { getTrancoRanks, type TrancoResult } from "./sources/tranco";
 import { getRdap, type RdapInfo } from "./sources/rdap";
 import { getDnsInfo, type DnsInfo } from "./sources/dns";
 import { getWaybackInfo, type WaybackInfo } from "./sources/wayback";
 import { getOpenPageRank, isOpenPageRankEnabled, type AuthorityScore } from "./sources/openpagerank";
 import { estimateMonthlyVisits, popularityTier, type VisitEstimate } from "./traffic-model";
-import { parseRobots, groupFor } from "./seo/robots";
+import { parseRobots, groupFor, robotsAccess, type RobotsAccess } from "./seo/robots";
 
 export interface TrafficSection {
   tranco: TrancoResult;
@@ -25,8 +25,8 @@ export interface CrawlabilitySection {
   robots: {
     url: string;
     found: boolean;
-    disallowAll: boolean;
-    rulesForAll: number;
+    /** Whether each kind of bot may crawl the homepage. */
+    access: RobotsAccess;
     crawlDelay: number | null;
     sitemaps: string[];
     invalidLines: number;
@@ -91,8 +91,7 @@ async function crawlability(report: Pick<PageReport, "finalUrl" | "robotsTxt">, 
   let robotsInfo: CrawlabilitySection["robots"] = {
     url: report.robotsTxt.url,
     found: false,
-    disallowAll: false,
-    rulesForAll: 0,
+    access: { googlebot: true, bingbot: true, otherBots: true },
     crawlDelay: null,
     sitemaps: [],
     invalidLines: 0,
@@ -101,13 +100,12 @@ async function crawlability(report: Pick<PageReport, "finalUrl" | "robotsTxt">, 
     const res = await fetchUrl(`${origin}/robots.txt`, { timeoutMs: 8000, maxBytes: 512 * 1024, signal });
     if (res.status === 200 && !/text\/html/i.test(res.headers["content-type"] ?? "")) {
       const robots = parseRobots(res.body.toString("utf8"));
-      const generic = groupFor(robots, BOT_TOKEN);
       robotsInfo = {
         url: res.finalUrl,
         found: true,
-        disallowAll: generic.rules.some((r) => r.type === "disallow" && r.path === "/") && !generic.rules.some((r) => r.type === "allow" && r.path === "/"),
-        rulesForAll: generic.rules.length,
-        crawlDelay: generic.crawlDelay,
+        access: robotsAccess(robots, report.finalUrl),
+        // Google ignores crawl-delay; Bing honors it, so report Bing's value.
+        crawlDelay: groupFor(robots, "Bingbot").crawlDelay,
         sitemaps: robots.sitemaps,
         invalidLines: robots.invalidLines.length,
       };

@@ -135,6 +135,26 @@ export function matchRule(rules: RobotsRule[], pathAndQuery: string): RobotsRule
   return winner;
 }
 
+export interface RobotsAccess {
+  googlebot: boolean;
+  bingbot: boolean;
+  /** Bots without rules of their own (the "*" group), which includes our crawler. */
+  otherBots: boolean;
+}
+
+/**
+ * Who may crawl a URL. SEO verdicts must come from the search engine bots: many sites
+ * (e.g. instagram.com) allow Googlebot and Bingbot but block every other bot, and
+ * that's a deliberate choice, not an indexing problem.
+ */
+export function robotsAccess(robots: RobotsTxt | null, url: string): RobotsAccess {
+  return {
+    googlebot: isAllowed(robots, url, "Googlebot"),
+    bingbot: isAllowed(robots, url, "Bingbot"),
+    otherBots: isAllowed(robots, url, "TrafficLensBot"),
+  };
+}
+
 export function isAllowed(robots: RobotsTxt | null, url: string, userAgentToken: string): boolean {
   if (!robots) return true;
   let pathAndQuery = "/";

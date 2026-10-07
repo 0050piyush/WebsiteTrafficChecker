@@ -11,6 +11,7 @@ import { addRecent } from "@/lib/client/recent";
 import { download, slug, toCsv } from "@/lib/client/csv";
 import { fmtBytes, fmtDate, fmtMs, fmtNumber } from "@/lib/client/format";
 import { ToolForm } from "../ToolForm";
+import { RecentSearches } from "../RecentSearches";
 import { DataTable, FilterInput, Tabs, type Column } from "../DataTable";
 import { Badge, Button, Card, CardHeader, ErrorNote, HttpStatus, KeyValue, PageHeader, ScoreGauge, Skeleton, StatusPill, cx } from "../ui";
 import { ChecksList, CheckSummary } from "../report/ChecksList";
@@ -60,6 +61,7 @@ export function AnalyzerTool() {
         button="Analyze page"
         busy={state.loading}
         inputMode="url"
+        openSite
         onSubmit={(v) => router.push(`/analyzer?${new URLSearchParams({ url: v, ...(kw.trim() ? { keyword: kw.trim() } : {}) })}`)}
       >
         <label className="flex w-full items-center gap-2 sm:w-auto">
@@ -67,6 +69,7 @@ export function AnalyzerTool() {
           <input value={kw} onChange={(e) => setKw(e.target.value)} placeholder="optional, e.g. running shoes" className="h-8 w-full rounded-md border border-line bg-bg px-2 text-sm text-ink outline-none focus:border-accent sm:w-64" />
         </label>
       </ToolForm>
+      <RecentSearches tool="analyzer" exclude={url} className="-mt-3 mb-6" />
       {state.error && <ErrorNote title="Couldn't analyze this page" message={state.error} />}
       {state.loading && (
         <div className="space-y-4">
@@ -470,7 +473,20 @@ function TechnicalPanel({ r }: { r: PageReport }) {
               ["Cache-Control", r.http.cacheControl ?? "—"],
               ["X-Robots-Tag", r.http.xRobotsTag ?? "—"],
               ["Canonical", r.seo.canonical ? <span key="c" className="break-all">{r.seo.canonical}</span> : "—"],
-              ["robots.txt", r.robotsTxt.found ? (r.robotsTxt.allowed === false ? <StatusPill key="r" status="fail" label="Blocks this URL" /> : <StatusPill key="r" status="pass" label="Allows this URL" />) : "Not found"],
+              [
+                "robots.txt",
+                !r.robotsTxt.found ? (
+                  "Not found (all bots allowed)"
+                ) : !r.robotsTxt.access ? (
+                  "Couldn't be read"
+                ) : !r.robotsTxt.access.googlebot ? (
+                  <StatusPill key="r" status="fail" label="Blocks Googlebot" />
+                ) : !r.robotsTxt.access.bingbot ? (
+                  <StatusPill key="r" status="warn" label="Blocks Bingbot" />
+                ) : (
+                  <StatusPill key="r" status="pass" label={r.robotsTxt.access.otherBots ? "Allows search engines" : "Allows search engines · blocks other bots"} />
+                ),
+              ],
             ]}
           />
         </div>

@@ -1,8 +1,8 @@
-import { BOT_TOKEN, decodeBody, fetchUrl, FetchError, type RedirectHop, type TlsInfo } from "../net/fetcher";
-import { extractPage, robotsDirectives, type ExtractedImage, type ExtractedLink } from "./extract";
+import { decodeBody, fetchUrl, FetchError, type RedirectHop, type TlsInfo } from "../net/fetcher";
+import { extractPage, looksClientRendered, robotsDirectives, type ExtractedImage, type ExtractedLink } from "./extract";
 import { runChecks, type Check } from "./checks";
 import { detectTechnologies, type DetectedTech } from "./tech";
-import { isAllowed, parseRobots, type RobotsTxt } from "./robots";
+import { parseRobots, robotsAccess, type RobotsAccess, type RobotsTxt } from "./robots";
 import { readability, topNGrams, truncateToPixels, textPixelWidth, SERP_DESCRIPTION_MAX_PX, SERP_TITLE_MAX_PX, type NGram, type Readability } from "./text";
 
 export interface PageReport {
@@ -55,7 +55,10 @@ export interface PageReport {
   social: { openGraph: Record<string, string>; twitter: Record<string, string> };
   structuredData: { jsonLd: { types: string[]; valid: boolean; error?: string }[]; microdataTypes: string[] };
   technologies: DetectedTech[];
-  robotsTxt: { url: string; found: boolean; allowed: boolean | null; sitemaps: string[] };
+  /** `allowed` is whether Googlebot may crawl the URL; `access` breaks it down per bot. */
+  robotsTxt: { url: string; found: boolean; allowed: boolean | null; access: RobotsAccess | null; sitemaps: string[] };
+  /** The server sends a near-empty shell and builds the content with JavaScript. */
+  jsRendered: boolean;
   mixedContent: string[];
   checks: Check[];
   score: number;
@@ -113,7 +116,14 @@ export async function analyzePage(inputUrl: string, opts: { keyword?: string; si
   const page = extractPage(html, res.finalUrl);
   const origin = new URL(res.finalUrl).origin;
   const robotsResult = await fetchRobots(origin, opts.signal);
-  const robotsAllowed = robotsResult.robots ? isAllowed(robotsResult.robots, res.finalUrl, BOT_TOKEN) && isAllowed(robotsResult.robots, res.finalUrl, "Googlebot") : robotsResult.status !== null ? true : null;
+  // No robots.txt (any answer but a parsed file) means everything may be crawled; a failed fetch means unknown.
+  const access: RobotsAccess | null = robotsResult.robots
+    ? robotsAccess(robotsResult.robots, res.finalUrl)
+    : robotsResult.status !== null
+      ? { googlebot: true, bingbot: true, otherBots: true }
+      : null;
+  const robotsAllowed = access ? access.googlebot : null;
+  const jsRendered = looksClientRendered(html, page);
 
   const xRobotsTag = res.headers["x-robots-tag"] ?? null;
   const metaDirectives = robotsDirectives(page.metaRobots, null);
@@ -133,7 +143,8 @@ export async function analyzePage(inputUrl: string, opts: { keyword?: string; si
     page,
     noindex,
     noindexSource,
-    robotsAllowed,
+    robotsAccess: access,
+    jsRendered,
     keyword: opts.keyword?.trim() || undefined,
   });
 
@@ -211,7 +222,8 @@ export async function analyzePage(inputUrl: string, opts: { keyword?: string; si
     social: { openGraph: page.openGraph, twitter: page.twitter },
     structuredData: { jsonLd: page.jsonLd, microdataTypes: page.microdataTypes },
     technologies,
-    robotsTxt: { url: robotsResult.url, found: !!robotsResult.robots, allowed: robotsAllowed, sitemaps: robotsResult.robots?.sitemaps ?? [] },
+    robotsTxt: { url: robotsResult.url, found: !!robotsResult.robots, allowed: robotsAllowed, access, sitemaps: robotsResult.robots?.sitemaps ?? [] },
+    jsRendered,
     mixedContent: page.mixedContent,
     checks,
     score,

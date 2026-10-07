@@ -10,6 +10,7 @@ import { addRecent } from "@/lib/client/recent";
 import { download, slug, toCsv } from "@/lib/client/csv";
 import { fmtDuration } from "@/lib/client/format";
 import { Checkbox, ToolForm } from "../ToolForm";
+import { RecentSearches } from "../RecentSearches";
 import { DataTable, FilterInput, Tabs, type Column } from "../DataTable";
 import { Badge, Card, ErrorNote, MethodLink, Meter, PageHeader, Skeleton, StatusPill, cx } from "../ui";
 
@@ -153,6 +154,7 @@ export function KeywordsTool() {
           ))}
         </span>
       </ToolForm>
+      <RecentSearches tool="keywords" exclude={q} className="-mt-3 mb-6" />
 
       {state.error && <ErrorNote title="Couldn't fetch keyword ideas" message={state.error} />}
       {state.loading && (

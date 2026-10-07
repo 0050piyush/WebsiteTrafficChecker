@@ -291,6 +291,19 @@ export function extractPage(html: string, pageUrl: string): ExtractedPage {
   };
 }
 
+/**
+ * True when the server sends a near-empty shell and the content is built by JavaScript
+ * in the browser (single-page apps such as instagram.com). Crawlers that don't run
+ * JavaScript see only the shell, so raw-HTML content checks must be read in that light.
+ */
+export function looksClientRendered(html: string, page: Pick<ExtractedPage, "wordCount" | "inlineScriptBytes" | "scripts">): boolean {
+  if (page.wordCount >= 250) return false;
+  const emptyAppRoot = /<(div|main)\b[^>]*\bid=["'](root|app|__next|__nuxt|react-root|svelte|mount|application)["'][^>]*>\s*<\/\1>/i.test(html);
+  const heavyScripts = page.inlineScriptBytes > 30_000 || page.scripts.length >= 8;
+  const noscriptAsksForJs = /<noscript\b[^>]*>[\s\S]{0,600}?javascript/i.test(html);
+  return emptyAppRoot || heavyScripts || noscriptAsksForJs;
+}
+
 /** Parse robots directives from meta tags and the X-Robots-Tag header. */
 export function robotsDirectives(metaRobots: string | null, xRobotsTag: string | null | undefined) {
   const all = `${metaRobots ?? ""},${xRobotsTag ?? ""}`.toLowerCase();

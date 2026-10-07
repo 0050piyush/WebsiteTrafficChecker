@@ -11,6 +11,7 @@ import { download, slug } from "@/lib/client/csv";
 import { fmtBytes, fmtCompact, fmtDate, fmtMs, fmtNumber, fmtRank, fmtYears } from "@/lib/client/format";
 import { UNRANKED_CEILING } from "@/lib/traffic-model";
 import { ToolForm } from "../ToolForm";
+import { RecentSearches } from "../RecentSearches";
 import { LineChart } from "../charts/LineChart";
 import { Badge, Card, CardHeader, Delta, ErrorNote, KeyValue, MethodLink, PageHeader, ScoreGauge, Skeleton, Stat, StatusPill, cx } from "../ui";
 import { SerpPreview } from "../report/SerpPreview";
@@ -133,8 +134,10 @@ export function TrafficTool() {
         placeholder="Enter a domain, e.g. example.com"
         button="Check traffic"
         busy={!!domain && !overview.done}
+        openSite
         onSubmit={(v) => router.push(`/traffic?domain=${encodeURIComponent(v)}`)}
       />
+      <RecentSearches tool="traffic" exclude={domain} className="-mt-3 mb-6" />
       {!domain ? <Intro /> : overview.fatal && !Object.values(overview.sections).some((s) => s.status === "ok") ? <ErrorNote title="Couldn't analyze this domain" message={overview.fatal} /> : <Report overview={overview} />}
     </div>
   );
@@ -364,10 +367,21 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
                 <div className="p-5">
                   <KeyValue
                     rows={[
-                      ["robots.txt", c.robots.found ? (c.robots.disallowAll ? <StatusPill status="fail" label="Blocks all crawlers" /> : <StatusPill status="pass" label="Found" />) : <StatusPill status="warn" label="Not found" />],
+                      ["robots.txt", c.robots.found ? <StatusPill status="pass" label="Found" /> : <StatusPill status="info" label="Not found (all bots allowed)" />],
+                      [
+                        "Search engines",
+                        !c.robots.access.googlebot ? (
+                          <StatusPill status="fail" label="Googlebot blocked" />
+                        ) : !c.robots.access.bingbot ? (
+                          <StatusPill status="warn" label="Bingbot blocked" />
+                        ) : (
+                          <StatusPill status="pass" label="Allowed" />
+                        ),
+                      ],
+                      ["Other bots", c.robots.access.otherBots ? "Allowed" : <StatusPill status="info" label="Blocked (site's choice)" />],
                       ["Pages in XML sitemaps", c.sitemap.checked.length ? `${fmtNumber(c.sitemap.urlCount)}${c.sitemap.partial ? "+" : ""}` : <StatusPill status="warn" label="No sitemap found" />],
                       ["Sitemap last updated", fmtDate(c.sitemap.latestLastmod)],
-                      ["Crawl delay", c.robots.crawlDelay ? `${c.robots.crawlDelay}s` : "None"],
+                      ["Crawl delay (Bing)", c.robots.crawlDelay ? `${c.robots.crawlDelay}s` : "None"],
                     ]}
                   />
                   <Link href={`/audit?url=${encodeURIComponent(siteUrl)}`} className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-accent-ink hover:underline">

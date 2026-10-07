@@ -112,6 +112,14 @@ export default function Page() {
           Title and description lengths are measured in <strong>pixels</strong> using Arial character widths (20px for titles, 14px for descriptions), because search engines truncate by width, not character count. Limits are
           ~600px for titles and ~920px for descriptions. The preview is approximate: engines rewrite titles and snippets when they think they can do better.
         </p>
+        <p>
+          <strong>robots.txt</strong> is judged for the bots that matter for search: Googlebot and Bingbot. Many large sites allow those but block every other bot, ours included; that is reported, but it
+          isn&apos;t counted against the page.
+        </p>
+        <p>
+          <strong>JavaScript-built pages:</strong> the analyzer reads the HTML the server sends and doesn&apos;t run JavaScript. When a page is a near-empty shell whose content is built in the browser, we
+          flag it and report missing headings and thin text as warnings rather than failures, because they may appear after rendering.
+        </p>
         <p>Readability uses the Flesch reading-ease formula, which is designed for English text.</p>
       </Section>
 

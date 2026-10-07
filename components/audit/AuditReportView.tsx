@@ -40,7 +40,12 @@ export function AuditReportView({ report }: { report: AuditReport }) {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold text-ink">{report.host}</h2>
+          <h2 className="flex items-center gap-2 text-xl font-semibold text-ink">
+            {report.host}
+            <a href={report.finalUrl} target="_blank" rel="noopener noreferrer nofollow" className="text-ink-3 hover:text-accent-ink" title={`Open ${report.host} in a new tab`} aria-label={`Open ${report.host} in a new tab`}>
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          </h2>
           <p className="text-sm text-ink-3">
             Crawled {new Date(report.finishedAt).toLocaleString("en-US")} in {fmtDuration(report.durationMs)}
             {report.stats.cancelled && " · stopped early"}
@@ -55,6 +60,16 @@ export function AuditReportView({ report }: { report: AuditReport }) {
           </button>
         </div>
       </div>
+
+      {report.site.blockedForCrawler && report.options.respectRobots && (
+        <div className="flex gap-2 rounded-lg bg-warn-soft px-4 py-3 text-sm text-warn-ink">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+          <span>
+            This site&apos;s robots.txt doesn&apos;t allow crawlers like TrafficLensBot, so the audit couldn&apos;t go past the start page. Many large sites allow only search engines. If it&apos;s
+            your own site, uncheck <strong>Respect robots.txt</strong> and run the audit again.
+          </span>
+        </div>
+      )}
 
       {(report.stats.limitReached || report.stats.cancelled) && (
         <div className="flex gap-2 rounded-lg bg-accent-soft px-4 py-3 text-sm text-accent-ink">

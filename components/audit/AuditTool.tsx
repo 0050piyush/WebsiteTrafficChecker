@@ -8,6 +8,7 @@ import { errorMessage, readNdjson } from "@/lib/client/ndjson";
 import { addRecent } from "@/lib/client/recent";
 import { fmtMs, pathOf } from "@/lib/client/format";
 import { Checkbox, ToolForm } from "../ToolForm";
+import { RecentSearches } from "../RecentSearches";
 import { Button, ErrorNote, HttpStatus, PageHeader } from "../ui";
 import { AuditReportView } from "./AuditReportView";
 
@@ -115,7 +116,7 @@ export function AuditTool() {
         title="Site audit"
         description="Crawl a website live and check every page for 45+ technical and on-page SEO issues: broken links, redirects, duplicate titles, thin content, missing tags and more."
       />
-      <ToolForm initial={url} label="Website URL" placeholder="https://example.com" button={running ? "Running…" : "Start audit"} busy={running} onSubmit={submit} inputMode="url">
+      <ToolForm initial={url} label="Website URL" placeholder="https://example.com" button={running ? "Running…" : "Start audit"} busy={running} onSubmit={submit} inputMode="url" openSite>
         <label className="inline-flex items-center gap-2">
           Max pages
           <select value={max} onChange={(e) => setMax(Number(e.target.value))} className="h-8 rounded-md border border-line bg-bg px-2 text-sm text-ink">
@@ -139,6 +140,7 @@ export function AuditTool() {
           Include sitemap URLs
         </Checkbox>
       </ToolForm>
+      <RecentSearches tool="audit" exclude={url} className="-mt-3 mb-6" />
 
       {run.phase === "error" && run.error && <ErrorNote title="The audit failed" message={run.error} />}
 
