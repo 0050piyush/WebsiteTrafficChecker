@@ -30,23 +30,26 @@ export function HeroSearch() {
 
   return (
     <div className="mx-auto w-full max-w-2xl">
-      <div className="mb-3 flex flex-wrap justify-center gap-1.5" role="tablist" aria-label="Choose a tool">
-        {TOOLS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={tool === t.id}
-            onClick={() => setTool(t.id)}
-            className={cx(
-              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors",
-              tool === t.id ? "border-transparent bg-ink text-bg" : "border-line bg-surface text-ink-2 hover:text-ink",
-            )}
-          >
-            <t.icon className="h-4 w-4" aria-hidden />
-            {t.label}
-          </button>
-        ))}
+      {/* One row at every width: a segmented control with equal columns; icons only where there's room. */}
+      <div className="mb-3 flex justify-center">
+        <div className="grid w-full grid-cols-4 gap-1 rounded-full border border-line bg-surface p-1 sm:inline-grid sm:w-auto" role="tablist" aria-label="Choose a tool">
+          {TOOLS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={tool === t.id}
+              onClick={() => setTool(t.id)}
+              className={cx(
+                "inline-flex min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-2 py-1.5 text-[13px] transition-colors max-[359px]:px-1 max-[359px]:text-xs sm:px-3.5 sm:text-sm",
+                tool === t.id ? "bg-ink text-bg" : "text-ink-2 hover:bg-surface-2 hover:text-ink",
+              )}
+            >
+              <t.icon className="hidden h-4 w-4 shrink-0 sm:block" aria-hidden />
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
       <form onSubmit={submit} className="card flex items-center gap-2 p-2 shadow-sm">
         <Search className="ml-2 h-5 w-5 shrink-0 text-ink-3" aria-hidden />
