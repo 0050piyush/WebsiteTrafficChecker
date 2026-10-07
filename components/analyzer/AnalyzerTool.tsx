@@ -89,7 +89,7 @@ function PageReportView({ report: r }: { report: PageReport }) {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
         <Card className="flex flex-col items-center justify-center gap-4 p-6 sm:flex-row sm:justify-start">
           <ScoreGauge score={r.score} size={128} label="On-page SEO score" />
           <div className="min-w-0 space-y-2 text-center sm:text-left">
@@ -158,7 +158,7 @@ function ContentPanel({ r }: { r: PageReport }) {
   const [n, setN] = useState<"one" | "two" | "three">("one");
   const grams = r.content.keywords[n];
   return (
-    <div className="grid gap-8 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
       <div>
         <h3 className="text-sm font-semibold text-ink">Heading outline</h3>
         {r.seo.headings.length ? (
@@ -401,7 +401,7 @@ function SocialPanel({ r }: { r: PageReport }) {
   const og = r.social.openGraph;
   const ogImage = og["og:image"] ? absUrl(og["og:image"], r.finalUrl) : null;
   return (
-    <div className="grid gap-8 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
       <div>
         <h3 className="text-sm font-semibold text-ink">Link preview</h3>
         <div className="mt-3 overflow-hidden rounded-xl border border-line">
@@ -460,7 +460,7 @@ function SocialPanel({ r }: { r: PageReport }) {
 
 function TechnicalPanel({ r }: { r: PageReport }) {
   return (
-    <div className="grid gap-8 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
       <div className="space-y-6">
         <div>
           <h3 className="text-sm font-semibold text-ink">Response</h3>

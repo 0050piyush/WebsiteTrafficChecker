@@ -92,7 +92,7 @@ export function CompareTool() {
         description="Put up to 8 competitors side by side: popularity rank, 30-day movement and estimated visits."
       />
       <form onSubmit={submit} className="card mb-6 p-4">
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {inputs.map((v, i) => (
             <div key={i} className="flex items-center gap-2 rounded-lg border border-line bg-bg px-3 focus-within:border-accent">
               <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: SERIES[i] }} aria-hidden />

@@ -82,7 +82,7 @@ export function AuditReportView({ report }: { report: AuditReport }) {
         </div>
       )}
 
-      <div className="grid gap-3 lg:grid-cols-[auto_1fr]">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[auto_minmax(0,1fr)]">
         <div className="card flex flex-col items-center justify-center px-8 py-5">
           <ScoreGauge score={report.healthScore} size={120} label="Health score" />
           <div className="mt-2 text-sm font-medium text-ink">Health score</div>
@@ -98,7 +98,7 @@ export function AuditReportView({ report }: { report: AuditReport }) {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <Card>
           <CardHeader title="HTTP status codes" subtitle="All crawled URLs" />
           <div className="p-5">

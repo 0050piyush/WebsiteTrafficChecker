@@ -14,10 +14,10 @@ export function SerpPreview({ serp, favicon }: { serp: PageReport["serp"]; favic
           <div className="truncate text-ink-3">{serp.breadcrumb}</div>
         </div>
       </div>
-      <div className="mt-2 text-xl leading-snug text-[#1a0dab] dark:text-[#99c3ff]" style={{ fontFamily: "Arial, sans-serif" }}>
+      <div className="mt-2 text-xl leading-snug wrap-anywhere text-[#1a0dab] dark:text-[#99c3ff]" style={{ fontFamily: "Arial, sans-serif" }}>
         {serp.title}
       </div>
-      <p className="mt-1 text-sm leading-normal text-ink-2" style={{ fontFamily: "Arial, sans-serif" }}>
+      <p className="mt-1 text-sm leading-normal text-ink-2 wrap-anywhere" style={{ fontFamily: "Arial, sans-serif" }}>
         {serp.description || <span className="italic text-ink-3">No description: the search engine will pick text from the page.</span>}
       </p>
     </div>

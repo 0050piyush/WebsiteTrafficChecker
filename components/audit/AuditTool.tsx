@@ -196,7 +196,7 @@ export function AuditTool() {
       )}
 
       {run.phase === "idle" && !run.report && (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {[
             ["Live crawl", "We follow links from your homepage (and your XML sitemap), the way search engines discover pages."],
             ["45+ checks", "Broken pages and links, redirect chains and loops, duplicate and missing tags, thin content, orphan pages, mixed content, and more."],

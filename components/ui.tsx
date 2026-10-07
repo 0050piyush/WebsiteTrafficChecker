@@ -92,8 +92,8 @@ export function Stat({ label, value, sub, hint, className }: { label: ReactNode;
   return (
     <div className={cx("card p-4", className)} title={hint}>
       <div className="text-xs font-medium text-ink-3">{label}</div>
-      <div className="mt-1 text-2xl font-semibold tracking-tight text-ink">{value}</div>
-      {sub && <div className="mt-1 text-xs text-ink-3">{sub}</div>}
+      <div className="mt-1 text-2xl font-semibold tracking-tight text-ink wrap-anywhere">{value}</div>
+      {sub && <div className="mt-1 text-xs text-ink-3 wrap-anywhere">{sub}</div>}
     </div>
   );
 }
@@ -175,7 +175,7 @@ export function ErrorNote({ title = "Couldn't load this", message, className, on
       <XCircle aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
       <div className="min-w-0 flex-1">
         <div className="font-medium">{title}</div>
-        <div className="opacity-90">{message}</div>
+        <div className="opacity-90 wrap-anywhere">{message}</div>
       </div>
       {onRetry && (
         <button type="button" onClick={onRetry} className="inline-flex h-8 shrink-0 items-center gap-1.5 self-center rounded-md border border-current/30 px-3 text-xs font-medium hover:bg-bad/10">
@@ -197,7 +197,7 @@ export function KeyValue({ rows }: { rows: [ReactNode, ReactNode][] }) {
       {rows.map(([k, v], i) => (
         <div key={i} className="flex items-start justify-between gap-4 py-2">
           <dt className="shrink-0 text-ink-3">{k}</dt>
-          <dd className="min-w-0 break-words text-right text-ink">{v ?? "—"}</dd>
+          <dd className="min-w-0 text-right text-ink wrap-anywhere">{v ?? "—"}</dd>
         </div>
       ))}
     </dl>

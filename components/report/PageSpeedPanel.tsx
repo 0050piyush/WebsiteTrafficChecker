@@ -102,7 +102,7 @@ export function PageSpeedPanel({ url }: { url: string }) {
             )}
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div>
               <h3 className="text-sm font-semibold text-ink">Lab metrics ({d.strategy})</h3>
               <dl className="mt-2 divide-y divide-line text-sm">

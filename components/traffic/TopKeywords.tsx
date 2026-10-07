@@ -47,7 +47,7 @@ function RankedList({ data }: { data: Extract<KeywordsSection, { source: "datafo
             <tbody className="divide-y divide-line">
               {data.keywords.map((k) => (
                 <tr key={k.keyword}>
-                  <td className="w-full max-w-0 py-2.5 pl-5 pr-2">
+                  <td className="w-full max-w-0 py-2.5 pl-5 pr-2 wrap-anywhere">
                     <Link href={ideasHref(k.keyword, data.market)} className="font-medium text-ink hover:text-accent-ink hover:underline">
                       {k.keyword}
                     </Link>
@@ -100,7 +100,7 @@ function SiteList({ data }: { data: Extract<KeywordsSection, { source: "site" }>
             <tbody className="divide-y divide-line">
               {data.keywords.map((k) => (
                 <tr key={k.keyword}>
-                  <td className="w-full max-w-0 py-2.5 pl-5 pr-2">
+                  <td className="w-full max-w-0 py-2.5 pl-5 pr-2 wrap-anywhere">
                     <Link href={ideasHref(k.keyword, data.market)} className="font-medium text-ink hover:text-accent-ink hover:underline">
                       {k.keyword}
                     </Link>

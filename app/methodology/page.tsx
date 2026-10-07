@@ -31,7 +31,7 @@ export default function Page() {
         description="Every number in TrafficLens can be traced to a source and a method. If something looks wrong, this page tells you why it might be."
       />
       <nav className="card mb-8 p-4 text-sm" aria-label="On this page">
-        <ul className="grid gap-1.5 sm:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
           {[
             ["traffic", "Traffic estimates"],
             ["other-tools", "Why other tools differ"],

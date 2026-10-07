@@ -161,7 +161,7 @@ export function TrafficTool() {
 
 function Intro() {
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
       {[
         ["Real popularity data", "Ranks combine several independent popularity sources, averaged over 30 days, so they're hard to manipulate."],
         ["Honest estimates", "Visits are shown as a range with the model published, because every traffic number is an estimate."],
@@ -377,7 +377,7 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
 
       <AdSlot />
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader title="Homepage SEO snapshot" icon={<Stethoscope className="h-4 w-4 text-ink-3" aria-hidden />} source="live fetch" />
           <SectionBody state={s.homepage} rows={6} onRetry={() => retry("homepage")}>
@@ -463,7 +463,7 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader title="Server & performance" icon={<Server className="h-4 w-4 text-ink-3" aria-hidden />} source="live fetch" />
           <SectionBody state={s.homepage} onRetry={() => retry("homepage")}>
@@ -504,7 +504,7 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
         </Card>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader title="Domain registration" icon={<Lock className="h-4 w-4 text-ink-3" aria-hidden />} source="RDAP" />
           <SectionBody state={s.registration} onRetry={() => retry("registration")}>

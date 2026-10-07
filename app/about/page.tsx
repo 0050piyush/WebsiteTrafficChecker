@@ -38,7 +38,7 @@ export default function AboutPage() {
       </div>
 
       <h2 className="mt-12 text-xl font-semibold text-ink">What we believe</h2>
-      <div className="mt-5 grid gap-x-8 gap-y-6 sm:grid-cols-2">
+      <div className="mt-5 grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
         {PRINCIPLES.map((p) => (
           <div key={p.title} className="flex gap-3">
             <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent-soft">

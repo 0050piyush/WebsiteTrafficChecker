@@ -54,7 +54,7 @@ export function PostGrid({ posts, page, pages }: { posts: PostMeta[]; page: numb
           <PostCard post={first} featured />
           <AdSlot className="mt-6" />
           {rest.length > 0 && (
-            <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {rest.map((p) => (
                 <PostCard key={p.slug} post={p} />
               ))}
@@ -62,7 +62,7 @@ export function PostGrid({ posts, page, pages }: { posts: PostMeta[]; page: numb
           )}
         </>
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {posts.map((p) => (
             <PostCard key={p.slug} post={p} />
           ))}

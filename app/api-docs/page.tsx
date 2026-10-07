@@ -115,7 +115,7 @@ export default function Page() {
               {e.params.length > 0 && (
                 <dl className="divide-y divide-line rounded-lg border border-line">
                   {e.params.map(([k, v]) => (
-                    <div key={k} className="grid gap-1 px-3 py-2 sm:grid-cols-[14rem_1fr]">
+                    <div key={k} className="grid grid-cols-1 gap-1 px-3 py-2 sm:grid-cols-[14rem_minmax(0,1fr)]">
                       <dt>
                         <code className="text-xs text-ink">{k}</code>
                       </dt>

@@ -32,12 +32,12 @@ function CheckRow({ check }: { check: Check }) {
         <StatusIcon status={check.status} className="mt-0.5" />
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-baseline justify-between gap-x-3">
-            <span className="text-sm font-medium text-ink">{check.title}</span>
+            <span className="min-w-0 text-sm font-medium text-ink wrap-anywhere">{check.title}</span>
             {check.value && <span className="max-w-full truncate text-xs text-ink-3 sm:max-w-[50%]">{check.value}</span>}
           </span>
-          <span className="mt-0.5 block text-sm text-ink-2">{check.message}</span>
+          <span className="mt-0.5 block text-sm text-ink-2 wrap-anywhere">{check.message}</span>
           {open && check.fix && (
-            <span className="mt-1.5 block rounded-md bg-surface-2 px-2.5 py-1.5 font-mono text-xs text-ink-2">
+            <span className="mt-1.5 block rounded-md bg-surface-2 px-2.5 py-1.5 font-mono text-xs text-ink-2 wrap-anywhere">
               <span className="font-sans font-medium text-ink">How to fix: </span>
               {check.fix}
             </span>

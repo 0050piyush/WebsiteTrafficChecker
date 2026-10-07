@@ -61,7 +61,7 @@ export default function Home() {
 
       <section aria-labelledby="tools-heading" className="py-8">
         <h2 id="tools-heading" className="mb-5 text-xl font-semibold text-ink">Tools</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {TOOLS.map((t) => (
             <Link key={t.title} href={t.href} className="card group flex flex-col p-5 transition-colors hover:border-line-strong">
               <t.icon className="h-5 w-5 text-accent-ink" aria-hidden />
@@ -78,7 +78,7 @@ export default function Home() {
       <section aria-labelledby="why-heading" className="py-10">
         <h2 id="why-heading" className="text-xl font-semibold text-ink">Why TrafficLens</h2>
         <p className="mt-1 max-w-2xl text-ink-2">Paid SEO suites are powerful, but they&apos;re expensive, they gate most features, and they rarely explain their numbers. We took the opposite approach.</p>
-        <div className="mt-6 grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
           {WHY.map((w) => (
             <div key={w.title} className="flex gap-3">
               <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent-soft">

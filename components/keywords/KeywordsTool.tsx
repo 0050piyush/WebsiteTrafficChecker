@@ -167,7 +167,7 @@ export function KeywordsTool() {
       )}
       {state.report && <KeywordResults report={state.report} />}
       {!q && (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {[
             ["What people actually type", "Autocomplete suggestions are real, popular searches. We query each engine with question words, prepositions and modifiers to surface the long tail."],
             ["Grouped for you", "Questions for FAQ and blog ideas, comparisons for “vs” pages, and topic clusters to plan content hubs."],

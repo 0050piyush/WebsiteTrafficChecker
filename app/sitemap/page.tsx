@@ -13,7 +13,7 @@ export default function SitemapPage() {
   return (
     <div className="mx-auto max-w-4xl">
       <PageHeader icon={<MapIcon className="h-7 w-7 text-accent-ink" aria-hidden />} title="Sitemap" description="Every page on TrafficLens in one place." />
-      <div className="grid gap-6 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         {PAGE_GROUPS.map((group) => (
           <section key={group.title} className="card p-5" aria-labelledby={`sm-${group.title}`}>
             <h2 id={`sm-${group.title}`} className="text-xs font-semibold uppercase tracking-wide text-ink-3">

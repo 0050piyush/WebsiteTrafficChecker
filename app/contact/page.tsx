@@ -28,7 +28,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
         title="Contact us"
         description="Questions about a number, a bug, an idea, or interest in the paid plans: we read every message."
       />
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <section className="card p-6" aria-label="Contact form">
           {enabled ? (
             <ContactForm defaultTopic={defaultTopic} defaultPlan={defaultPlan} />

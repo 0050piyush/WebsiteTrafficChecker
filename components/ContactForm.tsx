@@ -58,7 +58,7 @@ export function ContactForm({ defaultTopic, defaultPlan }: { defaultTopic: Conta
           {state.message}
         </p>
       )}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <label className="block text-sm font-medium text-ink">
           Name
           <input name="name" autoComplete="name" required maxLength={100} aria-invalid={!!err.name} className={cx(inputClass, "mt-1.5 h-11", err.name ? "border-bad" : "border-line")} />
@@ -70,7 +70,7 @@ export function ContactForm({ defaultTopic, defaultPlan }: { defaultTopic: Conta
           {err.email && <span className="mt-1 block text-xs font-normal text-bad-ink">{err.email}</span>}
         </label>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <label className="block text-sm font-medium text-ink">
           Topic
           <select value={topic} onChange={(e) => setTopic(e.target.value as ContactTopic)} className={cx(inputClass, "mt-1.5 h-11 border-line")}>

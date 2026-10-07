@@ -138,6 +138,8 @@ body {
   }
 
   .card {
+    /* Let cards shrink inside grid and flex layouts so long URLs never widen the page on phones. */
+    min-width: 0;
     background: var(--surface);
     border: 1px solid var(--line);
     border-radius: 14px;

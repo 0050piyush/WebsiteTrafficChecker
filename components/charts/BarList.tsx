@@ -21,7 +21,7 @@ export function BarList({ items, total, ariaLabel }: { items: BarItem[]; total?:
           <li
             key={item.label}
             tabIndex={0}
-            className="group relative grid grid-cols-[7.5rem_1fr_3rem] items-center gap-3 rounded-md px-1 py-0.5 outline-none hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-accent"
+            className="group relative grid grid-cols-[7.5rem_minmax(0,1fr)_3rem] items-center gap-3 rounded-md px-1 py-0.5 outline-none hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-accent"
             onPointerEnter={() => setActive(idx)}
             onPointerLeave={() => setActive(null)}
             onFocus={() => setActive(idx)}
