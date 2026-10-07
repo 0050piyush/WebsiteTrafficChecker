@@ -358,7 +358,15 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
           title="Top keywords"
           icon={<Search className="h-4 w-4 text-ink-3" aria-hidden />}
           subtitle={keywordsSubtitle(s.keywords.status === "ok" ? s.keywords.data : null)}
-          source={s.keywords.status === "ok" && s.keywords.data.source === "dataforseo" ? "DataForSEO" : "title & headings + search suggestions"}
+          source={
+            s.keywords.status !== "ok"
+              ? undefined
+              : s.keywords.data.source === "dataforseo"
+                ? "DataForSEO"
+                : s.keywords.data.volumeSource === "google-ads"
+                  ? "title & headings + Google Ads"
+                  : "title & headings + search suggestions"
+          }
         />
         <SectionBody state={s.keywords} rows={5} onRetry={() => retry("keywords")}>
           {(k) => <TopKeywords data={k} />}

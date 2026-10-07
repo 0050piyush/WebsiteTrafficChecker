@@ -48,7 +48,7 @@ export const FAQ: FaqGroup[] = [
     title: "Keywords",
     items: [
       { q: "Do you show search volume?", a: "No. Accurate search volumes need paid clickstream data. Instead we show a suggest score: how prominently search engines suggest a phrase, relative to the other ideas in your search." },
-      { q: "Can I see which keywords a website ranks for?", a: "The traffic report lists a site's top keywords. By default these are the phrases from its brand, title and headings that people search for, ranked by search demand. Exact Google positions and search volumes need a paid ranking database; they appear when the site operator connects a DataForSEO account.", link: { href: "/methodology#top-keywords", label: "How top keywords work" } },
+      { q: "Can I see which keywords a website ranks for?", a: "The traffic report lists a site's top keywords: the phrases from its brand, title and headings that people search for, with monthly search volumes. Volumes come from Google Ads Keyword Planner when it's connected, and are rough estimates (marked \"est.\") until then. Exact Google positions need a paid ranking database; they appear when the site operator connects a DataForSEO account.", link: { href: "/methodology#top-keywords", label: "How top keywords work" } },
       { q: "Which countries and languages are supported?", a: "17 countries and 10 languages, using suggestions from Google, Bing, YouTube, DuckDuckGo and Amazon (US)." },
     ],
   },

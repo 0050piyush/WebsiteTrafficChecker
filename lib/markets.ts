@@ -9,7 +9,7 @@ export interface Market {
   name: string;
 }
 
-/** Countries with keyword data. `location` is the Google Ads geo ID used by DataForSEO. */
+/** Countries with keyword data. `location` is the Google Ads geo target ID (DataForSEO uses the same IDs). */
 const COUNTRIES: Record<string, { name: string; hl: string; location: number }> = {
   us: { name: "United States", hl: "en", location: 2840 },
   gb: { name: "United Kingdom", hl: "en", location: 2826 },
@@ -64,4 +64,14 @@ export function siteMarket(domain: string, pageLang?: string | null): Market {
 export function dataForSeoLocation(market: Market): { location_code: number; language_code: string } {
   const country = COUNTRIES[market.gl] ?? COUNTRIES.us;
   return { location_code: country.location, language_code: country.hl };
+}
+
+/** Google Ads language criterion IDs. */
+const GOOGLE_ADS_LANGUAGES: Record<string, number> = { en: 1000, de: 1001, fr: 1002, es: 1003, it: 1004, ja: 1005, nl: 1010, pt: 1014, sv: 1015, hi: 1023 };
+
+/** Google Ads geo target and language for a market, as API resource names. */
+export function googleAdsTargets(market: Market): { geoTargetConstant: string; language: string } {
+  const country = COUNTRIES[market.gl] ?? COUNTRIES.us;
+  const language = GOOGLE_ADS_LANGUAGES[market.hl] ?? GOOGLE_ADS_LANGUAGES[country.hl];
+  return { geoTargetConstant: `geoTargetConstants/${country.location}`, language: `languageConstants/${language}` };
 }

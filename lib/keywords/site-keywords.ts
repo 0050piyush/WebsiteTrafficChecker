@@ -5,22 +5,23 @@ import { STOPWORDS, type NGram } from "../seo/text";
 import type { Market } from "../markets";
 
 /**
- * Free "top keywords" for a site. Without a ranking database we can't know where a site
- * ranks, but we can find the phrases it targets (brand, title, headings) and check which
- * ones people actually search for: search engines only autocomplete real, popular queries,
- * and the more popular a query, the fewer letters you need to type before it's suggested.
+ * "Top keywords" for a site without a ranking database: the phrases it targets (brand,
+ * title, headings) that people actually search for, with monthly search volumes from
+ * Google Ads Keyword Planner, or rough estimates from search suggestions until that's set up.
  */
 
 export type KeywordOrigin = "brand" | "title" | "h1" | "h2" | "content";
 
 export interface TargetKeyword {
   keyword: string;
-  /** 0–100: how readily search engines suggest it. Relative, NOT a search volume. */
-  demand: number;
+  /** Average monthly searches: from Google Ads, or a rough estimate when `estimated`. */
+  volume: number;
+  estimated: boolean;
+  /** High: 10K+ searches a month, Medium: 1K–10K, Low: under 1K. */
   level: "High" | "Medium" | "Low";
-  /** The shortest prefix we typed that still brought the phrase up. */
-  typedPrefix: string;
   foundIn: KeywordOrigin[];
+  /** Estimates only: the shortest prefix that brought the phrase up in search suggestions. */
+  typedPrefix?: string;
 }
 
 export interface SiteText {
@@ -141,41 +142,78 @@ export function suggestedAt(phrase: string, suggestions: string[]): number | nul
   return i === -1 ? null : i + 1;
 }
 
+/** Variations of the phrase itself ("isitdown", "isitdownrightnow.com") aren't competitors. */
+function countCompetitors(phrase: string, suggestions: string[]): number {
+  const target = compact(phrase);
+  return suggestions.filter((s) => {
+    const c = compact(s);
+    return !c.startsWith(target) && !target.startsWith(c);
+  }).length;
+}
+
 /**
- * Prefixes to type, longest first: the whole phrase, then about 3/4 of it, then about half.
- * `weight` is what being suggested at that length is worth: the fewer letters needed, the
- * more popular the query.
+ * Rough monthly searches from search suggestions. Only popular queries get suggested
+ * after a letter or two ("a" → amazon), so the fewer letters needed, the more searches.
+ * An unusual prefix ("isitd") has little competition, so a phrase that wins there gets
+ * less credit than one that beats nine other popular queries. Calibrated on a handful of
+ * known volumes; expect it to be off by up to 10×, which is why it's always labeled.
  */
-export function probePrefixes(phrase: string): { prefix: string; weight: number }[] {
-  const out: { prefix: string; weight: number }[] = [];
-  for (const [fraction, weight] of [
-    [1, 0.3],
-    [0.75, 0.6],
-    [0.5, 1],
-  ]) {
-    const prefix = phrase.slice(0, Math.ceil(phrase.length * fraction)).trimEnd();
-    if (prefix.length >= 3 && !out.some((p) => p.prefix === prefix)) out.push({ prefix, weight });
-  }
-  return out;
+export function estimateVolume(prefixLength: number, position: number, competitors: number): number {
+  const effective = prefixLength + 3 * (1 - Math.min(10, Math.max(0, competitors)) / 10);
+  const log = 7.6 - 0.45 * effective - Math.log10(Math.max(1, position));
+  const v = 10 ** Math.min(8, Math.max(1, log));
+  // One significant figure: anything more would claim precision we don't have.
+  const unit = 10 ** Math.floor(Math.log10(v));
+  return Math.round(v / unit) * unit;
 }
 
-/** Suggested after half the letters at #1 → 100; only when typed in full, at #10 → 13. */
-export function demandScore(weight: number, position: number): number {
-  return Math.max(1, Math.round((weight / (1 + 0.15 * (position - 1))) * 100));
+export function volumeLevel(volume: number): TargetKeyword["level"] {
+  return volume >= 10_000 ? "High" : volume >= 1_000 ? "Medium" : "Low";
 }
 
-export function demandLevel(demand: number): TargetKeyword["level"] {
-  return demand >= 55 ? "High" : demand >= 25 ? "Medium" : "Low";
-}
+export type VolumeSource = "google-ads" | "estimate";
+
+/** Looks up real monthly search volumes; null means no data for that keyword. */
+export type VolumeLookup = (keywords: string[]) => Promise<Map<string, number | null>>;
 
 export interface SiteKeywordsResult {
   keywords: TargetKeyword[];
   candidates: number;
-  engine: SuggestSource;
+  volumeSource: VolumeSource;
+  /** Which autocomplete engine the estimates came from (estimates only). */
+  engine: SuggestSource | null;
+  note?: string;
 }
 
-export async function estimateSiteKeywords(site: SiteText, market: Market, { signal, limit = 10 }: { signal?: AbortSignal; limit?: number } = {}): Promise<SiteKeywordsResult> {
-  const candidates = candidateKeywords(site);
+const byVolume = (a: TargetKeyword, b: TargetKeyword) => b.volume - a.volume || ORIGIN_ORDER.indexOf(a.foundIn[0]) - ORIGIN_ORDER.indexOf(b.foundIn[0]);
+
+/**
+ * The site's top keywords with monthly search volumes: real ones from `volumes` (Google
+ * Ads Keyword Planner) when it's available, otherwise rough estimates from search suggestions.
+ */
+export async function findSiteKeywords(
+  site: SiteText,
+  market: Market,
+  { signal, limit = 10, volumes }: { signal?: AbortSignal; limit?: number; volumes?: VolumeLookup } = {},
+): Promise<SiteKeywordsResult> {
+  const candidates = candidateKeywords(site, 12);
+  let note: string | undefined;
+
+  if (volumes && candidates.length) {
+    try {
+      const found = await volumes(candidates.map((c) => c.keyword));
+      const keywords = candidates.flatMap((c): TargetKeyword[] => {
+        const volume = found.get(c.keyword);
+        return volume ? [{ keyword: c.keyword, volume, estimated: false, level: volumeLevel(volume), foundIn: c.foundIn }] : [];
+      });
+      return { keywords: keywords.sort(byVolume).slice(0, limit), candidates: candidates.length, volumeSource: "google-ads", engine: null };
+    } catch (err) {
+      if (signal?.aborted) throw err;
+      console.warn(`[keywords] Google Ads volumes failed: ${(err as Error).message}`);
+      note = "Google Ads search volumes are unavailable right now, so volumes are rough estimates.";
+    }
+  }
+
   const opts = { hl: market.hl, gl: market.gl };
   let engine: SuggestSource = "google";
   let googleFailures = 0;
@@ -198,34 +236,48 @@ export async function estimateSiteKeywords(site: SiteText, market: Market, { sig
     return list;
   };
 
+  /** The shortest prefix that still brings the phrase up, found by binary search. */
+  const shortestPrefix = async (phrase: string) => {
+    const full = await suggest(phrase);
+    const fullPosition = suggestedAt(phrase, full);
+    // Never suggested, even typed in full: too few searches to count.
+    if (fullPosition === null) return null;
+    let best = { prefix: phrase, position: fullPosition, list: full };
+    let lo = 1;
+    let hi = phrase.length - 1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      const prefix = phrase.slice(0, mid);
+      const list = await suggest(prefix);
+      const position = suggestedAt(phrase, list);
+      if (position === null) lo = mid + 1;
+      else {
+        best = { prefix, position, list };
+        hi = mid - 1;
+      }
+    }
+    return best;
+  };
+
   const scored = await mapLimit(
     candidates,
     4,
     async (c): Promise<TargetKeyword | null> => {
-      let best: { prefix: string; weight: number; position: number } | null = null;
-      for (const { prefix, weight } of probePrefixes(c.keyword)) {
-        let list: string[];
-        try {
-          list = await suggest(prefix);
-        } catch {
-          break;
-        }
-        const position = suggestedAt(c.keyword, list);
-        // Not suggested at this length means it won't be with fewer letters either.
-        if (position === null) break;
-        best = { prefix, weight, position };
+      let best: Awaited<ReturnType<typeof shortestPrefix>>;
+      try {
+        best = await shortestPrefix(c.keyword);
+      } catch (err) {
+        if (signal?.aborted) throw err;
+        return null;
       }
       if (!best) return null;
-      const demand = demandScore(best.weight, best.position);
-      return { keyword: c.keyword, demand, level: demandLevel(demand), typedPrefix: best.prefix, foundIn: c.foundIn };
+      const volume = estimateVolume(best.prefix.length, best.position, countCompetitors(c.keyword, best.list));
+      return { keyword: c.keyword, volume, estimated: true, level: volumeLevel(volume), foundIn: c.foundIn, typedPrefix: best.prefix };
     },
     signal,
   );
   if (candidates.length && !anyAnswer) throw new Error("Search suggestions are unavailable right now");
 
-  const keywords = scored
-    .filter((k): k is TargetKeyword => !!k)
-    .sort((a, b) => b.demand - a.demand || ORIGIN_ORDER.indexOf(a.foundIn[0]) - ORIGIN_ORDER.indexOf(b.foundIn[0]))
-    .slice(0, limit);
-  return { keywords, candidates: candidates.length, engine };
+  const keywords = scored.filter((k): k is TargetKeyword => !!k).sort(byVolume).slice(0, limit);
+  return { keywords, candidates: candidates.length, volumeSource: "estimate", engine, ...(note ? { note } : {}) };
 }

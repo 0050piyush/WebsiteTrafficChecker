@@ -20,7 +20,7 @@ export function keywordsSubtitle(data: KeywordsSection | null): string {
 }
 
 export function TopKeywords({ data }: { data: KeywordsSection }) {
-  return data.source === "dataforseo" ? <RankedList data={data} /> : <EstimatedList data={data} />;
+  return data.source === "dataforseo" ? <RankedList data={data} /> : <SiteList data={data} />;
 }
 
 function RankedList({ data }: { data: Extract<KeywordsSection, { source: "dataforseo" }> }) {
@@ -75,8 +75,8 @@ function RankedList({ data }: { data: Extract<KeywordsSection, { source: "datafo
   );
 }
 
-function EstimatedList({ data }: { data: Extract<KeywordsSection, { source: "estimated" }> }) {
-  const rows = Math.ceil(data.keywords.length / 2);
+function SiteList({ data }: { data: Extract<KeywordsSection, { source: "site" }> }) {
+  const estimated = data.volumeSource === "estimate";
   return (
     <div>
       {data.note && (
@@ -86,44 +86,74 @@ function EstimatedList({ data }: { data: Extract<KeywordsSection, { source: "est
         </p>
       )}
       {data.keywords.length ? (
-        // Two columns on wide screens, read top to bottom like a ranked list.
-        <ol className="lg:grid lg:grid-flow-col lg:gap-x-8 lg:px-5" style={{ gridTemplateRows: `repeat(${rows}, auto)` }}>
-          {data.keywords.map((k, i) => (
-            <li key={k.keyword} className={cx("flex items-center gap-3 border-line px-5 py-2.5 lg:px-0", i > 0 && "border-t", i === rows && "lg:border-t-0")}>
-              <span className="tabular w-5 shrink-0 text-xs text-ink-3">{i + 1}</span>
-              <div className="min-w-0 flex-1">
-                <Link href={ideasHref(k.keyword, data.market)} className="font-medium text-ink hover:text-accent-ink hover:underline">
-                  {k.keyword}
-                </Link>
-                <div className="truncate text-xs text-ink-3">{k.foundIn.map((o) => ORIGIN_LABEL[o]).join(" · ")}</div>
-              </div>
-              <DemandBar keyword={k} />
-            </li>
-          ))}
-        </ol>
+        <div className="mt-1 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-line text-left text-xs text-ink-3">
+                <th className="py-2 pl-5 pr-2 font-medium">Keyword</th>
+                <th className="px-2 py-2 font-medium">Demand</th>
+                <th className="py-2 pl-2 pr-5 text-right font-medium sm:whitespace-nowrap" title={estimated ? "Rough estimates of monthly searches" : "Average monthly searches, from Google Ads"}>
+                  Volume{estimated && <span className="font-normal"> (est.)</span>}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {data.keywords.map((k) => (
+                <tr key={k.keyword}>
+                  <td className="w-full max-w-0 py-2.5 pl-5 pr-2">
+                    <Link href={ideasHref(k.keyword, data.market)} className="font-medium text-ink hover:text-accent-ink hover:underline">
+                      {k.keyword}
+                    </Link>
+                    <div className="truncate text-xs text-ink-3">{k.foundIn.map((o) => ORIGIN_LABEL[o]).join(" · ")}</div>
+                  </td>
+                  <td className="px-2 py-2.5">
+                    <DemandBar keyword={k} />
+                  </td>
+                  <td className="tabular whitespace-nowrap py-2.5 pl-2 pr-5 text-right">
+                    {k.estimated ? (
+                      <span title={`Rough estimate${k.typedPrefix ? `: suggested after typing “${k.typedPrefix}”` : ""}. Can be off by 10× or more.`}>~{fmtCompact(k.volume)}</span>
+                    ) : (
+                      fmtCompact(k.volume)
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : (
         <p className="px-5 py-6 text-sm text-ink-2">
           {data.jsRendered
             ? "This homepage builds its content with JavaScript, so there was too little text to find the phrases it targets."
-            : "None of the phrases in this homepage's title and headings come up in search suggestions yet. That's common for new or niche sites."}
+            : estimated
+              ? "None of the phrases in this homepage's title and headings come up in search suggestions yet. That's common for new or niche sites."
+              : "None of the phrases in this homepage's title and headings get measurable Google searches yet. That's common for new or niche sites."}
         </p>
       )}
-      <Footer market={data.market} keyword={data.keywords[0]?.keyword} anchor="top-keywords">
-        Found in the site&apos;s brand, title and headings, then ranked by how readily {data.engine === "google" ? "Google" : "DuckDuckGo"} suggests each one. Exact positions and search volumes
-        need a paid ranking database.
+      <Footer market={data.market} keyword={data.keywords[0]?.keyword}>
+        {estimated ? (
+          <>
+            Found in the site&apos;s brand, title and headings. Volumes are rough estimates from how readily {data.engine === "duckduckgo" ? "DuckDuckGo" : "Google"} suggests each phrase and can be off
+            by 10× or more.
+          </>
+        ) : (
+          <>Found in the site&apos;s brand, title and headings. Volumes are average monthly Google searches {inMarket(data.market)}, from Google Ads Keyword Planner.</>
+        )}
       </Footer>
     </div>
   );
 }
 
+/** Bar on a log scale: 10 searches a month is empty, a million or more is full. */
 function DemandBar({ keyword: k }: { keyword: TargetKeyword }) {
   const tone = k.level === "High" ? "bg-accent" : k.level === "Medium" ? "bg-accent/70" : "bg-accent/40";
+  const width = Math.min(100, Math.max(4, ((Math.log10(Math.max(10, k.volume)) - 1) / 5) * 100));
   return (
-    <div className="flex w-32 shrink-0 items-center gap-2 sm:w-40" title={`Search demand ${k.demand}/100: suggested after typing “${k.typedPrefix}”`}>
-      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-accent-soft" aria-hidden>
-        <div className={cx("h-full rounded-full", tone)} style={{ width: `${k.demand}%` }} />
+    <div className="flex items-center gap-2 sm:w-44">
+      <div className="hidden h-1.5 flex-1 overflow-hidden rounded-full bg-accent-soft sm:block" aria-hidden>
+        <div className={cx("h-full rounded-full", tone)} style={{ width: `${width}%` }} />
       </div>
-      <span className="w-14 text-right text-xs text-ink-2">{k.level}</span>
+      <span className="text-xs text-ink-2 sm:w-14 sm:text-right">{k.level}</span>
     </div>
   );
 }

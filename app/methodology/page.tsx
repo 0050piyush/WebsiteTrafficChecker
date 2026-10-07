@@ -182,17 +182,25 @@ export default function Page() {
 
       <Section id="top-keywords" title="Top keywords in the traffic report">
         <p>
-          Tools like Ahrefs list the keywords a site ranks for from their own database of Google results, with each keyword&apos;s position and search volume. There&apos;s no free source for that data, so by default we
-          show the next best thing: the phrases a site targets that people actually search for.
+          Tools like Ahrefs list the keywords a site ranks for from their own database of Google results, with each keyword&apos;s position and search volume. There&apos;s no free source for rankings, so by default we
+          show the next best thing: the phrases a site targets that people actually search for, with how often they&apos;re searched.
         </p>
         <p>
           <strong>Finding the phrases.</strong> We take the brand (from the domain name and the site&apos;s name), every part of the homepage title, the main headings and subheadings, and a few phrases repeated in the
           page text. Long title phrases also contribute their first two or three words, because &quot;is it down right now&quot; is usually searched as &quot;is it down&quot;.
         </p>
         <p>
-          <strong>Search demand.</strong> Search engines only suggest real, popular queries, and the more popular a query, the fewer letters you need to type before it appears. We type each phrase in full, then
-          about three quarters of it, then about half, and note the shortest prefix that still brings it up and its position in the list. Suggested after half the letters at #1 scores 100; suggested only when typed in
-          full scores 30 or less; never suggested means it&apos;s left out. Scores of 55+ are shown as High demand, 25–54 as Medium, and below that as Low. Like the suggest score, it&apos;s relative, not a search volume.
+          <strong>Search volume.</strong> When the site operator connects Google Ads, volumes are Google&apos;s own average monthly searches from{" "}
+          <a href="https://developers.google.com/google-ads/api/docs/keyword-planning/generate-historical-metrics" target="_blank" rel="noreferrer">
+            Keyword Planner
+          </a>
+          , for the site&apos;s country. Otherwise they&apos;re rough estimates, marked &quot;~&quot; and &quot;est.&quot;: search engines only suggest popular queries, and the more popular a query, the fewer letters
+          you need to type before it appears (&quot;a&quot; brings up amazon). We find the shortest prefix that still brings each phrase up, note its position and how many unrelated queries it beat there (winning
+          after &quot;isitd&quot;, where there&apos;s little competition, counts for less than winning after &quot;is it d&quot;), and convert that to monthly searches with a formula calibrated on known volumes. Expect
+          estimates to be off by up to 10×; they&apos;re rounded to one significant figure for that reason. Phrases that are never suggested, even typed in full, are left out.
+        </p>
+        <p>
+          <strong>Demand</strong> is the volume in words: High is 10,000+ searches a month, Medium 1,000–10,000, Low under 1,000.
         </p>
         <p>
           <strong>Real rankings (optional).</strong> When the site operator connects a{" "}

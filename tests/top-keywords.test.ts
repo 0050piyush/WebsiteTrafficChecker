@@ -1,21 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  brandOf,
-  candidateKeywords,
-  demandLevel,
-  demandScore,
-  estimateSiteKeywords,
-  normalizePhrase,
-  probePrefixes,
-  suggestedAt,
-  titleSegments,
-} from "@/lib/keywords/site-keywords";
+import { brandOf, candidateKeywords, estimateVolume, findSiteKeywords, normalizePhrase, suggestedAt, titleSegments, volumeLevel } from "@/lib/keywords/site-keywords";
+import { getSearchVolumes, googleAdsErrorMessage, isGoogleAdsEnabled, parseHistoricalMetrics, resetGoogleAdsState } from "@/lib/sources/google-ads";
 import { getRankedKeywords, parseRankedKeywords } from "@/lib/sources/dataforseo";
 import { dataForSeoLocation, siteMarket } from "@/lib/markets";
 
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
+  vi.restoreAllMocks();
 });
 
 const US = { gl: "us", hl: "en", name: "United States" };
@@ -97,34 +89,34 @@ describe("finding the phrases a site targets", () => {
   });
 });
 
-describe("search demand", () => {
+describe("search volume", () => {
   it("matches suggestions regardless of spacing and .com", () => {
     expect(suggestedAt("isitdownrightnow", ["isitdownrightnow.com", "x"])).toBe(1);
     expect(suggestedAt("is it down", ["is it down right now", "is it down"])).toBe(2);
     expect(suggestedAt("website down", ["website design"])).toBeNull();
   });
 
-  it("types the whole phrase, then 3/4, then half", () => {
-    expect(probePrefixes("is it down")).toEqual([
-      { prefix: "is it down", weight: 0.3 },
-      { prefix: "is it do", weight: 0.6 },
-      { prefix: "is it", weight: 1 },
-    ]);
-    expect(probePrefixes("ebay").map((p) => p.prefix)).toEqual(["ebay", "eba"]);
+  it("estimates fewer letters, higher positions and more competition as more searches", () => {
+    // Calibration points, against Ahrefs' US volumes: within 10×, to one significant figure.
+    expect(estimateVolume(1, 1, 9)).toBe(10_000_000); // "amazon" after "a"
+    expect(estimateVolume(7, 1, 9)).toBe(20_000); // "is it down" after "is it d" (Ahrefs: 32K)
+    expect(estimateVolume(5, 1, 0)).toBe(10_000); // "isitdownrightnow" after "isitd", no rivals (Ahrefs: 3.6K)
+    expect(estimateVolume(9, 2, 9)).toBe(1_000); // "website down" after "website d" (Ahrefs: 4.8K)
+    expect(estimateVolume(40, 1, 5)).toBe(10); // only when typed in full: the floor
+    expect(estimateVolume(5, 1, 9)).toBeGreaterThan(estimateVolume(5, 1, 0));
+    expect(estimateVolume(5, 1, 5)).toBeGreaterThan(estimateVolume(5, 4, 5));
+    expect(estimateVolume(3, 1, 5)).toBeGreaterThan(estimateVolume(8, 1, 5));
+    expect(volumeLevel(32_000)).toBe("High");
+    expect(volumeLevel(4_800)).toBe("Medium");
+    expect(volumeLevel(320)).toBe("Low");
   });
 
-  it("scores fewer letters and higher positions as more demand", () => {
-    expect(demandScore(1, 1)).toBe(100);
-    expect(demandScore(0.3, 10)).toBe(13);
-    expect(demandScore(0.6, 1)).toBeGreaterThan(demandScore(0.3, 1));
-    expect(demandLevel(100)).toBe("High");
-    expect(demandLevel(30)).toBe("Medium");
-    expect(demandLevel(13)).toBe("Low");
-  });
-
-  it("ranks the site's phrases by how readily they're suggested", async () => {
+  it("ranks the site's phrases by estimated volume", async () => {
     stubSuggestFetch({
       google: fakeSuggest({
+        // Popular queries that crowd out ours for short prefixes, like real autocomplete.
+        ...Object.fromEntries(["instagram", "ikea", "indeed", "imdb", "icloud", "insurance", "iphone", "irs", "internet speed test", "inflation"].map((k, i) => [k, 1000 - i])),
+        ...Object.fromEntries(["isaac", "isabella", "israel", "issuu", "isle of man", "is it going to rain", "is it a holiday today", "isolation", "isis", "is the post office open today"].map((k, i) => [k, 500 - i])),
         "is it down": 100,
         "is it raining": 95,
         "is it christmas": 90,
@@ -146,31 +138,134 @@ describe("search demand", () => {
         "website down": 50,
       }),
     });
-    const result = await estimateSiteKeywords({ domain: "isitdownrightnow.com", title: "Is It Down Right Now? Website Down or Not?", headings: [] }, US);
-    expect(result.engine).toBe("google");
+    const result = await findSiteKeywords({ domain: "isitdownrightnow.com", title: "Is It Down Right Now? Website Down or Not?", headings: [] }, US);
+    expect(result).toMatchObject({ volumeSource: "estimate", engine: "google" });
     const byKeyword = Object.fromEntries(result.keywords.map((k) => [k.keyword, k]));
     expect(result.keywords[0].keyword).toBe("is it down");
-    expect(byKeyword["is it down"]).toMatchObject({ demand: 100, level: "High", typedPrefix: "is it" });
-    expect(byKeyword["isitdownrightnow"]).toMatchObject({ foundIn: ["brand"], demand: 77, typedPrefix: "isitdown" });
-    // Crowded out when only half is typed, so only Medium demand.
-    expect(byKeyword["website down"]).toMatchObject({ level: "Medium", typedPrefix: "website d" });
+    expect(byKeyword["isitdownrightnow"].foundIn).toEqual(["brand"]);
+    // Crowded out by popular "website …" searches until the next word starts.
+    expect(byKeyword["website down"]).toMatchObject({ typedPrefix: "website ", level: "Low" });
+    // Never suggested, so left out.
     expect(byKeyword["website down or not"]).toBeUndefined();
-    // Sorted by demand.
-    const demands = result.keywords.map((k) => k.demand);
-    expect([...demands].sort((a, b) => b - a)).toEqual(demands);
+    for (const k of result.keywords) {
+      expect(k.estimated).toBe(true);
+      expect(k.keyword.startsWith(k.typedPrefix!)).toBe(true);
+      expect(k.typedPrefix!.length).toBeLessThan(k.keyword.length);
+    }
+    for (const k of result.keywords) expect(k.level).toBe(volumeLevel(k.volume));
+    const volumes = result.keywords.map((k) => k.volume);
+    expect([...volumes].sort((a, b) => b - a)).toEqual(volumes);
+  });
+
+  it("uses real volumes when a lookup is available, and falls back to estimates when it fails", async () => {
+    stubSuggestFetch({ google: fakeSuggest({ "fallback widgets": 10, "fallback widget shop": 5 }) });
+    const site = { domain: "fallback-widget-shop.com", title: "Fallback Widgets | Fallback Widget Shop", headings: [] };
+    const real = await findSiteKeywords(site, US, {
+      volumes: async (keywords) => new Map(keywords.map((k) => [k, k === "fallback widgets" ? 33_100 : k === "fallback widget shop" ? 0 : null])),
+    });
+    expect(real.volumeSource).toBe("google-ads");
+    expect(real.keywords).toEqual([{ keyword: "fallback widgets", volume: 33_100, estimated: false, level: "High", foundIn: ["title"] }]);
+
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const fallback = await findSiteKeywords(site, US, {
+      volumes: async () => {
+        throw new Error("DEVELOPER_TOKEN_NOT_APPROVED");
+      },
+    });
+    expect(fallback.volumeSource).toBe("estimate");
+    expect(fallback.note).toMatch(/rough estimates/);
+    expect(fallback.keywords.map((k) => k.keyword)).toContain("fallback widgets");
   });
 
   it("falls back to DuckDuckGo when Google refuses", async () => {
-    const calls = stubSuggestFetch({ google: () => null, duckduckgo: fakeSuggest({ "fallback widgets": 10 }) });
-    const result = await estimateSiteKeywords({ domain: "fallbackwidgets-shop.com", title: "Fallback Widgets", headings: [] }, US);
+    const calls = stubSuggestFetch({ google: () => null, duckduckgo: fakeSuggest({ "fallback gadgets": 10 }) });
+    const result = await findSiteKeywords({ domain: "fallbackgadgets-shop.com", title: "Fallback Gadgets", headings: [] }, US);
     expect(result.engine).toBe("duckduckgo");
-    expect(result.keywords.map((k) => k.keyword)).toContain("fallback widgets");
+    expect(result.keywords.map((k) => k.keyword)).toContain("fallback gadgets");
     expect(calls).toContain("duckduckgo.com");
   });
 
   it("reports an error when no engine answers", async () => {
     stubSuggestFetch({});
-    await expect(estimateSiteKeywords({ domain: "nothing-answers.com", title: "Nothing Answers", headings: [] }, US)).rejects.toThrow("unavailable");
+    await expect(findSiteKeywords({ domain: "nothing-answers.com", title: "Nothing Answers", headings: [] }, US)).rejects.toThrow("unavailable");
+  });
+});
+
+describe("Google Ads keyword volumes", () => {
+  const ADS_ENV = {
+    GOOGLE_ADS_DEVELOPER_TOKEN: "dev-token",
+    GOOGLE_ADS_CLIENT_ID: "client",
+    GOOGLE_ADS_CLIENT_SECRET: "secret",
+    GOOGLE_ADS_REFRESH_TOKEN: "refresh",
+    GOOGLE_ADS_CUSTOMER_ID: "123-456-7890",
+  };
+  const stubEnv = (env: Record<string, string>) => Object.entries(env).forEach(([k, v]) => vi.stubEnv(k, v));
+
+  it("is enabled only when every credential is set", () => {
+    stubEnv({ ...ADS_ENV, GOOGLE_ADS_REFRESH_TOKEN: "" });
+    expect(isGoogleAdsEnabled()).toBe(false);
+    stubEnv(ADS_ENV);
+    expect(isGoogleAdsEnabled()).toBe(true);
+  });
+
+  it("parses volumes, close variants and missing metrics", () => {
+    const body = {
+      results: [
+        { text: "is it down", closeVariants: ["is it down?"], keywordMetrics: { avgMonthlySearches: "33100", competition: "LOW" } },
+        { text: "website down", keywordMetrics: { avgMonthlySearches: "4400" } },
+        { text: "nobody searches this" },
+      ],
+    };
+    const map = parseHistoricalMetrics(body, ["is it down", "Is It Down?", "website down", "nobody searches this", "not returned"]);
+    expect(Object.fromEntries(map)).toEqual({ "is it down": 33100, "Is It Down?": 33100, "website down": 4400, "nobody searches this": 0, "not returned": null });
+    expect(googleAdsErrorMessage({ error: { message: "The caller does not have permission", details: [{ errors: [{ message: "The developer token is only approved for use with test accounts." }] }] } }, 403)).toBe(
+      "Google Ads: The developer token is only approved for use with test accounts.",
+    );
+  });
+
+  it("signs in, asks for the market's volumes and caches them", async () => {
+    resetGoogleAdsState();
+    stubEnv({ ...ADS_ENV, GOOGLE_ADS_LOGIN_CUSTOMER_ID: "999-888-7777" });
+    const fetchMock = vi.fn<(url: string, init: RequestInit) => Promise<Response>>(async (url) =>
+      url.startsWith("https://oauth2.googleapis.com/")
+        ? new Response(JSON.stringify({ access_token: "ya29.token", expires_in: 3600 }), { status: 200 })
+        : new Response(JSON.stringify({ results: [{ text: "is it down", keywordMetrics: { avgMonthlySearches: "33100" } }] }), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const first = await getSearchVolumes(["is it down", "website down"], siteMarket("bbc.co.uk"));
+    expect(Object.fromEntries(first)).toEqual({ "is it down": 33100, "website down": null });
+
+    const [tokenUrl, tokenInit] = fetchMock.mock.calls[0];
+    expect(tokenUrl).toBe("https://oauth2.googleapis.com/token");
+    expect(String(tokenInit.body)).toContain("grant_type=refresh_token");
+    const [url, init] = fetchMock.mock.calls[1];
+    expect(url).toBe("https://googleads.googleapis.com/v25/customers/1234567890:generateKeywordHistoricalMetrics");
+    expect(init.headers).toMatchObject({ authorization: "Bearer ya29.token", "developer-token": "dev-token", "login-customer-id": "9998887777" });
+    expect(JSON.parse(String(init.body))).toEqual({
+      keywords: ["is it down", "website down"],
+      language: "languageConstants/1000",
+      geoTargetConstants: ["geoTargetConstants/2826"],
+      keywordPlanNetwork: "GOOGLE_SEARCH",
+    });
+
+    // Cached: no new requests.
+    await getSearchVolumes(["is it down"], siteMarket("bbc.co.uk"));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("pauses after an error instead of retrying on every report", async () => {
+    resetGoogleAdsState();
+    stubEnv(ADS_ENV);
+    const fetchMock = vi.fn<(url: string) => Promise<Response>>(async (url) =>
+      url.startsWith("https://oauth2.googleapis.com/")
+        ? new Response(JSON.stringify({ access_token: "t", expires_in: 3600 }), { status: 200 })
+        : new Response(JSON.stringify({ error: { message: "PERMISSION_DENIED", details: [{ errors: [{ message: "Developer token not approved." }] }] } }), { status: 403 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(getSearchVolumes(["a keyword"], US)).rejects.toThrow("Developer token not approved.");
+    const calls = fetchMock.mock.calls.length;
+    await expect(getSearchVolumes(["another keyword"], US)).rejects.toThrow("Developer token not approved.");
+    expect(fetchMock).toHaveBeenCalledTimes(calls);
   });
 });
 

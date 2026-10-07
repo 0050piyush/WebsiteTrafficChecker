@@ -10,7 +10,8 @@ import { estimateMonthlyVisits, popularityTier, type VisitEstimate } from "./tra
 import { parseRobots, groupFor, robotsAccess, type RobotsAccess } from "./seo/robots";
 import { getRankedKeywords, isDataForSeoEnabled, type RankedKeywords } from "./sources/dataforseo";
 import type { SuggestSource } from "./sources/autocomplete";
-import { estimateSiteKeywords, type TargetKeyword } from "./keywords/site-keywords";
+import { findSiteKeywords, type TargetKeyword, type VolumeSource } from "./keywords/site-keywords";
+import { getSearchVolumes, isGoogleAdsEnabled } from "./sources/google-ads";
 import { siteMarket, type Market } from "./markets";
 import { stripWww } from "./url";
 
@@ -48,11 +49,21 @@ export interface CrawlabilitySection {
 
 /**
  * The keywords a site is found for. With DataForSEO configured these are real Google
- * rankings; otherwise they're estimated from the homepage and search suggestions.
+ * rankings; otherwise they're the phrases the homepage targets that people search for,
+ * with volumes from Google Ads Keyword Planner or, until that's set up, rough estimates.
  */
 export type KeywordsSection =
   | ({ source: "dataforseo"; market: Market } & RankedKeywords)
-  | { source: "estimated"; market: Market; engine: SuggestSource; candidates: number; keywords: TargetKeyword[]; jsRendered: boolean; note?: string };
+  | {
+      source: "site";
+      market: Market;
+      volumeSource: VolumeSource;
+      engine: SuggestSource | null;
+      candidates: number;
+      keywords: TargetKeyword[];
+      jsRendered: boolean;
+      note?: string;
+    };
 
 export interface SectionMap {
   traffic: TrafficSection;
@@ -167,7 +178,8 @@ async function topKeywords(target: { hostname: string; domain: string }, home: H
       return { source: "dataforseo", market, ...(await getRankedKeywords(stripWww(target.hostname), market, { signal })) };
     } catch (err) {
       if (signal.aborted) throw err;
-      note = `Ranking data is unavailable right now (${(err as Error).message}), so these are estimates.`;
+      console.warn(`[keywords] DataForSEO failed: ${(err as Error).message}`);
+      note = "Google ranking data is unavailable right now, so these keywords come from the site's own pages.";
     }
   }
   if (!home) throw new Error("Skipped because the homepage could not be fetched");
@@ -178,8 +190,12 @@ async function topKeywords(target: { hostname: string; domain: string }, home: H
     headings: home.seo.headings,
     phrases: [...home.content.keywords.three, ...home.content.keywords.two],
   };
-  const result = await estimateSiteKeywords(site, market, { signal });
-  return { source: "estimated", market, ...result, jsRendered: home.jsRendered, ...(note ? { note } : {}) };
+  const result = await findSiteKeywords(site, market, {
+    signal,
+    volumes: isGoogleAdsEnabled() ? (keywords) => getSearchVolumes(keywords, market, { signal }) : undefined,
+  });
+  const notes = [note, result.note].filter(Boolean).join(" ");
+  return { source: "site", market, ...result, jsRendered: home.jsRendered, ...(notes ? { note: notes } : {}) };
 }
 
 function trimReport(report: PageReport): HomepageSection {
