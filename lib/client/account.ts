@@ -12,9 +12,11 @@ export interface AccountInfo {
   enabled: boolean;
   user: AccountUser | null;
   plan: PlanId;
+  /** Most pages one site audit may crawl on this plan; null = no limit. */
+  auditPages: number | null;
 }
 
-const ANONYMOUS: AccountInfo = { enabled: false, user: null, plan: "free" };
+const ANONYMOUS: AccountInfo = { enabled: false, user: null, plan: "free", auditPages: 200 };
 let current: Promise<AccountInfo> | null = null;
 
 /** Fetch once per page load and share the result; `refresh` asks the server again. */
@@ -27,6 +29,7 @@ export function fetchAccount(refresh = false): Promise<AccountInfo> {
           enabled: !!d?.enabled,
           user: d?.user ?? null,
           plan: d?.plan === "pro" || d?.plan === "agency" ? d.plan : "free",
+          auditPages: typeof d?.auditPages === "number" || d?.auditPages === null ? d.auditPages : ANONYMOUS.auditPages,
         }),
       )
       .catch(() => ANONYMOUS);

@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, Download, ExternalLink, Info } from "lucide-react";
 import type { AuditIssue, AuditReport, CrawledPage, LinkCheckResult, Severity } from "@/lib/audit/types";
+import { useAccount } from "@/lib/client/account";
 import { download, slug, toCsv } from "@/lib/client/csv";
 import { fmtBytes, fmtDuration, fmtMs, fmtNumber, pathOf } from "@/lib/client/format";
 import { BarList } from "../charts/BarList";
@@ -13,6 +15,7 @@ const SEV_ORDER: Severity[] = ["error", "warning", "notice"];
 
 export function AuditReportView({ report }: { report: AuditReport }) {
   const [tab, setTab] = useState<"issues" | "pages" | "external">("issues");
+  const account = useAccount();
   const counts = useMemo(() => {
     const c: Record<Severity, number> = { error: 0, warning: 0, notice: 0 };
     for (const i of report.issues) c[i.severity] += i.count;
@@ -75,9 +78,21 @@ export function AuditReportView({ report }: { report: AuditReport }) {
         <div className="flex gap-2 rounded-lg bg-accent-soft px-4 py-3 text-sm text-accent-ink">
           <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
           <span>
-            {report.stats.cancelled ? "The audit was stopped before it finished. " : `The crawl stopped at the ${report.options.maxPages}-page limit. `}
+            {report.stats.cancelled
+              ? "The audit was stopped before it finished. "
+              : report.stats.stopReason === "time-limit"
+                ? `An audit can run for up to ${Math.ceil((report.options.timeLimitMs ?? 300_000) / 60_000)} minutes, so the crawl stopped after ${fmtNumber(report.stats.crawled)} pages. `
+                : `The crawl stopped at the ${fmtNumber(report.options.maxPages)}-page limit. `}
             {report.stats.discoveredNotCrawled > 0 && `${fmtNumber(report.stats.discoveredNotCrawled)} more URLs were discovered but not crawled. `}
             Orphan-page detection is skipped for partial crawls.
+            {report.stats.stopReason === "page-limit" && account?.plan === "free" && (
+              <>
+                {" "}
+                <Link href="/pricing" className="font-medium underline">
+                  Pro and Agency audits have no page limit.
+                </Link>
+              </>
+            )}
           </span>
         </div>
       )}

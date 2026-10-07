@@ -6,7 +6,7 @@ import { cx } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: "Pricing",
-  description: "Every TrafficLens tool is free with no account. Pro ($19/mo) and Agency ($49/mo) plans with bigger audits, monitoring and higher API limits are coming soon.",
+  description: "Every TrafficLens tool is free with no account. Pro ($19/mo) and Agency ($49/mo) plans with no audit page limit, monitoring and higher API limits are coming soon.",
 };
 
 function CellValue({ value }: { value: Cell }) {

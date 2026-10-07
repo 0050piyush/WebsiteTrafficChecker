@@ -47,7 +47,7 @@ export default async function AccountPage() {
           </div>
           {showsAds(planId) && (
             <div className="rounded-lg bg-accent-soft px-4 py-3 text-sm text-accent-ink">
-              Pro and Agency plans are coming soon: no ads, bigger audits, monitoring and higher API limits.{" "}
+              Pro and Agency plans are coming soon: no ads, no audit page limit, monitoring and higher API limits.{" "}
               <Link href="/contact?topic=waitlist&plan=pro" className="font-medium underline-offset-2 hover:underline">
                 Join the waitlist
               </Link>

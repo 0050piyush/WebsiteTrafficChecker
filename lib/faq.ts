@@ -40,7 +40,7 @@ export const FAQ: FaqGroup[] = [
     title: "Site audit & page checks",
     items: [
       { q: "How does the site audit work?", a: "We start at the URL you enter, read robots.txt and your XML sitemaps, and follow links breadth-first, checking every page for 48 kinds of technical and on-page issues, plus the status of links and images.", link: { href: "/audit", label: "Run an audit" } },
-      { q: "How many pages can I audit?", a: "Up to 200 pages per crawl on the Free plan. The Pro and Agency plans will raise that to 5,000 and 25,000 pages." },
+      { q: "How many pages can I audit?", a: "Up to 200 pages per audit on the Free plan. Pro and Agency audits have no page limit: the crawl keeps following links until it has covered the site. One audit can run for up to 5 minutes, so on very large sites the report covers the pages crawled in that time." },
       { q: "Why did my audit stop after one page?", a: "The site's robots.txt doesn't allow crawlers like ours. Many large sites allow only search engines. If it's your own site, untick \"Respect robots.txt\" and run the audit again." },
       { q: "Can it check sites built with JavaScript?", a: "Partly. We read the HTML your server sends and don't run JavaScript. When a page builds its content in the browser, we flag it and treat missing headings or text as warnings rather than errors." },
       { q: "Will an audit slow down my website?", a: "It shouldn't. Our crawler identifies itself as TrafficLensBot, fetches at most five pages at a time, and respects robots.txt and crawl-delay by default." },

@@ -29,7 +29,7 @@ export const PLANS: Plan[] = [
     highlights: [
       "Website traffic checker",
       "Compare up to 8 websites",
-      "Site audits up to 200 pages per crawl",
+      "Site audits up to 200 pages each",
       "On-page SEO and broken link checker",
       "Keyword ideas from 5 search engines",
       "Core Web Vitals tests",
@@ -47,7 +47,7 @@ export const PLANS: Plan[] = [
     highlights: [
       "Everything in Free",
       "No ads anywhere on the site",
-      "Site audits up to 5,000 pages",
+      "Site audits with no page limit",
       "Scheduled weekly audits with email alerts",
       "Track traffic trends for 50 websites",
       "Compare up to 25 websites",
@@ -66,7 +66,7 @@ export const PLANS: Plan[] = [
     description: "For agencies and teams reporting on many client sites.",
     highlights: [
       "Everything in Pro, ad-free",
-      "Site audits up to 25,000 pages",
+      "Site audits with no page limit",
       "Daily scheduled audits",
       "Track traffic trends for 250 websites",
       "5 team seats",
@@ -102,7 +102,7 @@ export const COMPARISON_GROUPS: { title: string; rows: ComparisonRow[] }[] = [
   {
     title: "Site audit",
     rows: [
-      { feature: "Pages per crawl", values: { free: "200", pro: "5,000", agency: "25,000" } },
+      { feature: "Pages per audit", values: { free: "200", pro: "No limit", agency: "No limit" } },
       { feature: "Scheduled audits and email alerts", values: { free: false, pro: "Weekly", agency: "Daily" } },
       { feature: "Saved projects and report history", values: { free: false, pro: true, agency: true } },
     ],

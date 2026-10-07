@@ -1,12 +1,14 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Square, Stethoscope } from "lucide-react";
 import type { AuditEvent, AuditReport, CrawledPage } from "@/lib/audit/types";
 import { errorMessage, readNdjson } from "@/lib/client/ndjson";
 import { addRecent } from "@/lib/client/recent";
-import { fmtMs, pathOf } from "@/lib/client/format";
+import { useAccount } from "@/lib/client/account";
+import { fmtMs, fmtNumber, pathOf } from "@/lib/client/format";
 import { Checkbox, ToolForm } from "../ToolForm";
 import { RecentSearches } from "../RecentSearches";
 import { AdSlot } from "../AdSlot";
@@ -17,6 +19,8 @@ type Phase = "idle" | "crawling" | "checking-links" | "analyzing" | "done" | "er
 
 interface RunState {
   phase: Phase;
+  /** Page limit the server set for this audit (null = none), once the crawl starts. */
+  pageLimit: number | null | undefined;
   crawled: number;
   queued: number;
   recent: CrawledPage[];
@@ -26,22 +30,18 @@ interface RunState {
   error: string | null;
 }
 
-const INITIAL: RunState = { phase: "idle", crawled: 0, queued: 0, recent: [], messages: [], linkProgress: null, report: null, error: null };
-// The Free plan allows up to 200 pages per crawl (MAX_AUDIT_PAGES on the server).
-const PAGE_OPTIONS = [25, 50, 100, 200];
+const INITIAL: RunState = { phase: "idle", pageLimit: undefined, crawled: 0, queued: 0, recent: [], messages: [], linkProgress: null, report: null, error: null };
 
 export function AuditTool() {
   const params = useSearchParams();
   const router = useRouter();
   const url = (params.get("url") ?? "").trim();
-  const maxPages = Number(params.get("max")) || 100;
   const [opts, setOpts] = useState({ respectRobots: params.get("robots") !== "0", checkExternal: params.get("external") !== "0", checkResources: true, useSitemap: true });
-  const [max, setMax] = useState(maxPages);
   const [run, setRun] = useState<RunState>(INITIAL);
   const ctrlRef = useRef<AbortController | null>(null);
 
   const start = useCallback(
-    async (target: string, pages: number, o: typeof opts) => {
+    async (target: string, o: typeof opts) => {
       ctrlRef.current?.abort();
       const ctrl = new AbortController();
       ctrlRef.current = ctrl;
@@ -49,7 +49,6 @@ export function AuditTool() {
       addRecent("audit", target);
       const qs = new URLSearchParams({
         url: target,
-        maxPages: String(pages),
         respectRobots: o.respectRobots ? "1" : "0",
         checkExternal: o.checkExternal ? "1" : "0",
         checkResources: o.checkResources ? "1" : "0",
@@ -60,6 +59,9 @@ export function AuditTool() {
         if (!res.ok) throw new Error(await errorMessage(res));
         await readNdjson<AuditEvent | { type: "heartbeat" }>(res, (e) => {
           switch (e.type) {
+            case "start":
+              setRun((r) => ({ ...r, pageLimit: e.options.maxPages }));
+              break;
             case "page":
               setRun((r) => ({ ...r, crawled: e.crawled, queued: e.queued, recent: [e.page, ...r.recent].slice(0, 8) }));
               break;
@@ -90,26 +92,26 @@ export function AuditTool() {
   );
 
   // Start when the URL (query string) asks for an audit.
-  const startKey = url ? `${url}|${maxPages}` : "";
+  const startKey = url;
   const lastKey = useRef("");
   useEffect(() => {
     if (!startKey || lastKey.current === startKey) return;
     lastKey.current = startKey;
-    void start(url, maxPages, opts);
+    void start(url, opts);
     // opts are read at start time only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startKey]);
   useEffect(() => () => ctrlRef.current?.abort(), []);
 
   const submit = (value: string) => {
-    const next = `/audit?url=${encodeURIComponent(value)}&max=${max}`;
-    if (value === url && max === maxPages) {
-      void start(value, max, opts);
-    } else router.push(next);
+    if (value === url) void start(value, opts);
+    else router.push(`/audit?url=${encodeURIComponent(value)}`);
   };
 
   const running = run.phase === "crawling" || run.phase === "checking-links" || run.phase === "analyzing";
-  const pct = Math.min(100, Math.round((run.crawled / Math.max(1, maxPages)) * 100));
+  // With no page limit, show progress against everything discovered so far.
+  const pct = Math.min(100, Math.round((run.crawled / Math.max(1, typeof run.pageLimit === "number" ? run.pageLimit : run.crawled + run.queued)) * 100));
+  const account = useAccount();
 
   return (
     <div>
@@ -119,16 +121,6 @@ export function AuditTool() {
         description="Crawl a website live and check every page for 45+ technical and on-page SEO issues: broken links, redirects, duplicate titles, thin content, missing tags and more."
       />
       <ToolForm initial={url} label="Website URL" placeholder="https://example.com" button={running ? "Running…" : "Start audit"} busy={running} onSubmit={submit} inputMode="url" openSite>
-        <label className="inline-flex items-center gap-2">
-          Max pages
-          <select value={max} onChange={(e) => setMax(Number(e.target.value))} className="h-8 rounded-md border border-line bg-bg px-2 text-sm text-ink">
-            {PAGE_OPTIONS.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-        </label>
         <Checkbox checked={opts.respectRobots} onChange={(v) => setOpts((o) => ({ ...o, respectRobots: v }))}>
           Respect robots.txt
         </Checkbox>
@@ -142,6 +134,7 @@ export function AuditTool() {
           Include sitemap URLs
         </Checkbox>
       </ToolForm>
+      {account && <PageLimitNote limit={account.auditPages} />}
       <RecentSearches tool="audit" exclude={url} className="-mt-3 mb-6" />
 
       {run.phase === "error" && run.error && <ErrorNote title="The audit failed" message={run.error} />}
@@ -151,7 +144,12 @@ export function AuditTool() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="text-sm font-medium text-ink">
-                {run.phase === "crawling" && `Crawling… ${run.crawled} of up to ${maxPages} pages`}
+                {run.phase === "crawling" &&
+                  (run.pageLimit === undefined
+                    ? "Starting the crawl…"
+                    : run.pageLimit === null
+                      ? `Crawling… ${fmtNumber(run.crawled)} pages`
+                      : `Crawling… ${fmtNumber(run.crawled)} of up to ${fmtNumber(run.pageLimit)} pages`)}
                 {run.phase === "checking-links" && `Checking links and images… ${run.linkProgress?.done ?? 0} of ${run.linkProgress?.total ?? 0}`}
                 {run.phase === "analyzing" && "Analyzing results…"}
               </div>
@@ -210,5 +208,24 @@ export function AuditTool() {
         </div>
       )}
     </div>
+  );
+}
+
+/** What the visitor's plan allows: Free audits have a page limit, paid audits don't. */
+function PageLimitNote({ limit }: { limit: number | null }) {
+  return (
+    <p className="-mt-3 mb-6 text-xs text-ink-3">
+      {limit === null ? (
+        "No page limit on your plan: the audit crawls every page it can reach."
+      ) : (
+        <>
+          Free audits crawl up to {fmtNumber(limit)} pages.{" "}
+          <Link href="/pricing" className="text-accent-ink hover:underline">
+            Pro and Agency have no page limit
+          </Link>
+          .
+        </>
+      )}
+    </p>
   );
 }

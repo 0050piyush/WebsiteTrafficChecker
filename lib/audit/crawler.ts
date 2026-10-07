@@ -67,9 +67,24 @@ export function clickDepths(starts: string[], inlinks: Map<string, Set<string>>,
   return dist;
 }
 
+/**
+ * When to stop starting new work under a time budget: the crawl stops early enough for
+ * in-flight pages (20s timeout) and link checks to finish, and link checks stop early
+ * enough for the report to be built and sent.
+ */
+export function auditDeadlines(startMs: number, timeLimitMs: number | undefined): { crawlUntil: number; checkLinksUntil: number } {
+  if (!timeLimitMs || !Number.isFinite(timeLimitMs)) return { crawlUntil: Infinity, checkLinksUntil: Infinity };
+  return {
+    crawlUntil: startMs + timeLimitMs - Math.min(70_000, timeLimitMs / 4),
+    checkLinksUntil: startMs + timeLimitMs - Math.min(25_000, timeLimitMs / 10),
+  };
+}
+
 export async function runAudit(startInput: string, options: AuditOptions, emit: (e: AuditEvent) => void, signal?: AbortSignal): Promise<AuditReport> {
   const startedAt = new Date();
   const agents = createAgents(Math.max(2, options.concurrency));
+  const deadlines = auditDeadlines(+startedAt, options.timeLimitMs);
+  const maxPages = options.maxPages ?? Infinity;
 
   // 1. Resolve the start URL to find the site we are actually auditing.
   let finalUrl: string;
@@ -160,6 +175,7 @@ export async function runAudit(startInput: string, options: AuditOptions, emit: 
   const sitemapQueue: string[] = [];
   let inFlight = 0;
   let crawledCount = 0;
+  let outOfTime = false;
 
   const enqueue = (url: string, depth: number) => {
     if (seen.has(url)) return;
@@ -297,7 +313,12 @@ export async function runAudit(startInput: string, options: AuditOptions, emit: 
         if (inFlight === 0) resolve();
         return;
       }
-      while (inFlight < concurrency && crawledCount < options.maxPages) {
+      while (inFlight < concurrency && crawledCount < maxPages) {
+        // Always crawl the start page; after that, stop starting pages once time is short.
+        if (crawledCount > 0 && Date.now() >= deadlines.crawlUntil) {
+          outOfTime = true;
+          break;
+        }
         const job = nextJob();
         if (!job) break;
         inFlight++;
@@ -324,8 +345,12 @@ export async function runAudit(startInput: string, options: AuditOptions, emit: 
     pump();
   });
 
-  const limitReached = crawledCount >= options.maxPages && (queue.length > 0 || sitemapQueue.some((u) => !seen.has(u)));
   const discoveredNotCrawled = queue.length + sitemapQueue.filter((u) => !seen.has(u)).length;
+  const stopReason = discoveredNotCrawled === 0 || signal?.aborted ? null : crawledCount >= maxPages ? "page-limit" : outOfTime ? "time-limit" : null;
+  const limitReached = stopReason !== null;
+  if (stopReason === "time-limit") {
+    emit({ type: "info", message: `Reached the time limit for one audit after ${crawledCount.toLocaleString("en-US")} pages; checking links and building the report.` });
+  }
 
   // 6. Link & resource checks
   const resourceResults = new Map<string, LinkCheckResult>();
@@ -367,6 +392,7 @@ export async function runAudit(startInput: string, options: AuditOptions, emit: 
           uniqueResources,
           4,
           async (u) => {
+            if (Date.now() >= deadlines.checkLinksUntil) return tick();
             const r = await probeUrl(u, { timeoutMs: 10_000, signal, agents });
             resourceResults.set(u, { url: u, status: r.status, error: r.error, code: r.code, sources: [...(resources.get(u) ?? images.get(u) ?? [])].slice(0, 20) });
             tick();
@@ -377,6 +403,7 @@ export async function runAudit(startInput: string, options: AuditOptions, emit: 
           externalTargets,
           6,
           async (u) => {
+            if (Date.now() >= deadlines.checkLinksUntil) return tick();
             const r = await probeUrl(u, { timeoutMs: 10_000, signal });
             externalResults.push({ url: u, status: r.status, error: r.error, code: r.code, sources: [...(externals.get(u) ?? [])].slice(0, 20) });
             tick();
@@ -406,7 +433,8 @@ export async function runAudit(startInput: string, options: AuditOptions, emit: 
     externalResults,
     sitemapUrls,
     blocked,
-    limitReached,
+    // Orphan pages can't be told apart on a partial crawl, whether it hit a limit or was stopped.
+    limitReached: limitReached || (!!signal?.aborted && discoveredNotCrawled > 0),
     site: {
       finalUrl,
       robotsFound: !!robots,
@@ -457,6 +485,7 @@ export async function runAudit(startInput: string, options: AuditOptions, emit: 
       resourcesChecked: resourceResults.size,
       sitemapUrls: sitemapUrls.size,
       limitReached,
+      stopReason,
       discoveredNotCrawled,
       cancelled: !!signal?.aborted,
     },

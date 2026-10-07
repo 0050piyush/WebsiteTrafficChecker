@@ -93,7 +93,7 @@ All optional. See [`.env.example`](.env.example).
 | `OPENPAGERANK_API_KEY` | Adds an authority score (0–10) to the traffic report |
 | `GOOGLE_ADS_DEVELOPER_TOKEN`, `GOOGLE_ADS_CLIENT_ID`, `GOOGLE_ADS_CLIENT_SECRET`, `GOOGLE_ADS_REFRESH_TOKEN`, `GOOGLE_ADS_CUSTOMER_ID` (+ optional `GOOGLE_ADS_LOGIN_CUSTOMER_ID`, `GOOGLE_ADS_API_VERSION`) | Free, optional: real monthly search volumes for top keywords from Keyword Planner. Needs a developer token with Basic access; until then volumes are rough estimates |
 | `DATAFORSEO_LOGIN` / `DATAFORSEO_PASSWORD` | Paid, optional: real Google keyword rankings (position, volume, traffic) in the traffic report, about $0.01 per report, cached 24h |
-| `MAX_AUDIT_PAGES` | Hard cap on pages per audit (default 200, max 1000) |
+| `MAX_AUDIT_PAGES` | Pages per site audit on the Free plan (default 200, max 1000). Pro and Agency audits have no page limit; every audit stops after about 5 minutes |
 | `API_RATE_LIMIT_PER_MINUTE` | Per-IP request budget for the API (default 60) |
 | `SITE_URL` | Public base URL, used in `sitemap.xml` and `robots.txt` |
 | `ALLOW_PRIVATE_HOSTS` | **Development only.** Lets the fetcher reach localhost/private IPs. Never enable on a public deployment. |

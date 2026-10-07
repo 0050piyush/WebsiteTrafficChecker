@@ -1,7 +1,13 @@
 export type Severity = "error" | "warning" | "notice";
 
 export interface AuditOptions {
-  maxPages: number;
+  /** Most pages to crawl; null = no page limit (paid plans). */
+  maxPages: number | null;
+  /**
+   * Time budget for the whole audit in ms. The crawl stops early enough to check links and
+   * build the report inside it. Unset = no time limit.
+   */
+  timeLimitMs?: number;
   concurrency: number;
   respectRobots: boolean;
   checkExternal: boolean;
@@ -93,7 +99,9 @@ export interface AuditReport {
     externalChecked: number;
     resourcesChecked: number;
     sitemapUrls: number;
+    /** The crawl stopped at a page or time limit with pages left to crawl. */
     limitReached: boolean;
+    stopReason: "page-limit" | "time-limit" | null;
     discoveredNotCrawled: number;
     cancelled: boolean;
   };

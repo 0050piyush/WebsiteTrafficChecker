@@ -117,5 +117,27 @@ describe("runAudit (live fixture)", () => {
     expect(small.stats.crawled).toBe(3);
     expect(small.stats.limitReached).toBe(true);
     expect(small.issues.find((i) => i.id === "orphan-page")).toBeUndefined();
+    expect(small.stats.stopReason).toBe("page-limit");
+  });
+
+  it("crawls the whole site with no page limit", async () => {
+    const all = await runAudit(`${site.origin}/`, { ...DEFAULT_AUDIT_OPTIONS, maxPages: null, checkExternal: false, checkResources: false }, () => undefined);
+    expect(all.stats.crawled).toBe(report.stats.crawled);
+    expect(all.stats.limitReached).toBe(false);
+    expect(all.stats.stopReason).toBeNull();
+    expect(all.options.maxPages).toBeNull();
+  });
+
+  it("stops at the time limit and still returns a report", async () => {
+    const infos: string[] = [];
+    const timed = await runAudit(`${site.origin}/`, { ...DEFAULT_AUDIT_OPTIONS, maxPages: null, timeLimitMs: 1 }, (e) => {
+      if (e.type === "info") infos.push(e.message);
+    });
+    expect(timed.stats.crawled).toBe(1);
+    expect(timed.stats.limitReached).toBe(true);
+    expect(timed.stats.stopReason).toBe("time-limit");
+    expect(timed.stats.discoveredNotCrawled).toBeGreaterThan(0);
+    expect(timed.stats.externalChecked + timed.stats.resourcesChecked).toBe(0);
+    expect(infos.some((m) => m.includes("time limit"))).toBe(true);
   });
 });

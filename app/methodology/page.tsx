@@ -227,7 +227,7 @@ export default function Page() {
           <li><strong>No absolute search volume or keyword difficulty.</strong> These require clickstream data or paid APIs. Rankings and volumes for the top keywords appear only when a DataForSEO account is connected.</li>
           <li><strong>No rank tracking.</strong> Scraping search results violates search engines&apos; terms; paid SERP APIs are the legitimate route.</li>
           <li><strong>JavaScript-rendered content</strong> isn&apos;t executed by the crawler. If your content only appears after JavaScript runs, we (like many crawlers) may see less than your users do.</li>
-          <li><strong>Audits are capped</strong> (default 200 pages per run on the hosted version) to keep the service fair and polite.</li>
+          <li><strong>Free audits are capped</strong> at 200 pages per run to keep the service fair and polite. Pro and Agency audits have no page limit, but every audit stops after 5 minutes, so very large sites are only partly crawled.</li>
         </ul>
       </Section>
 

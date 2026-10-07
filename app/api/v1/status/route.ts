@@ -1,5 +1,5 @@
 import { json } from "@/lib/api";
-import { maxAuditPages } from "@/lib/limits";
+import { freeAuditPages } from "@/lib/limits";
 import { SUGGEST_SOURCES } from "@/lib/sources/autocomplete";
 
 export const runtime = "nodejs";
@@ -18,7 +18,7 @@ export async function GET() {
       pagespeed: { enabled: true, apiKey: !!process.env.PAGESPEED_API_KEY },
       openPageRank: { enabled: !!process.env.OPENPAGERANK_API_KEY },
     },
-    limits: { maxAuditPages: maxAuditPages(), compareDomains: 8, linkCheck: 150 },
+    limits: { maxAuditPages: freeAuditPages(), compareDomains: 8, linkCheck: 150 },
     keywordSources: SUGGEST_SOURCES,
   });
 }

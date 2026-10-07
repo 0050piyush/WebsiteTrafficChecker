@@ -49,7 +49,7 @@ const ENDPOINTS: { method: "GET" | "POST"; path: string; summary: string; params
     summary: "Live site crawl. Streams NDJSON events (start, info, page, phase, progress) and ends with a done event containing the full report.",
     params: [
       ["url", "Required. Start URL."],
-      ["maxPages", "Optional. Default 100, capped by the server (MAX_AUDIT_PAGES)."],
+      ["maxPages", "Optional, to crawl fewer pages. Free: up to 200 (the default, set by MAX_AUDIT_PAGES). Pro and Agency: no page limit unless you set one. Every audit stops after about 5 minutes."],
       ["concurrency", "Optional. 1–5, default 4."],
       ["respectRobots, checkExternal, checkResources, useSitemap", "Optional booleans (1/0), all default 1."],
     ],
