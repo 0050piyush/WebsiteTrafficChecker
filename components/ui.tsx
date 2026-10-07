@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { AlertTriangle, CheckCircle2, Info, XCircle, CircleSlash, HelpCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Info, XCircle, CircleSlash, HelpCircle, RotateCw } from "lucide-react";
 
 export function cx(...parts: (string | false | null | undefined)[]): string {
   return parts.filter(Boolean).join(" ");
@@ -169,14 +169,20 @@ export function Button({
   );
 }
 
-export function ErrorNote({ title = "Couldn't load this", message, className }: { title?: string; message: string; className?: string }) {
+export function ErrorNote({ title = "Couldn't load this", message, className, onRetry }: { title?: string; message: string; className?: string; onRetry?: () => void }) {
   return (
     <div className={cx("flex gap-2 rounded-lg border border-transparent bg-bad-soft px-3 py-2.5 text-sm text-bad-ink", className)} role="alert">
       <XCircle aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
-      <div>
+      <div className="min-w-0 flex-1">
         <div className="font-medium">{title}</div>
         <div className="opacity-90">{message}</div>
       </div>
+      {onRetry && (
+        <button type="button" onClick={onRetry} className="inline-flex h-8 shrink-0 items-center gap-1.5 self-center rounded-md border border-current/30 px-3 text-xs font-medium hover:bg-bad/10">
+          <RotateCw aria-hidden className="h-3.5 w-3.5" />
+          Try again
+        </button>
+      )}
     </div>
   );
 }

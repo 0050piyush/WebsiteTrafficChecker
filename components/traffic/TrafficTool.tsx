@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, BarChart3, ExternalLink, Globe, History, Link2, Lock, Server, ShieldCheck, Stethoscope, Cpu, Gauge, Download } from "lucide-react";
 import type { SectionMap, SectionName } from "@/lib/overview";
 import { readNdjson, errorMessage } from "@/lib/client/ndjson";
@@ -43,35 +43,71 @@ interface OverviewState {
 
 const fresh = (domain: string): OverviewState => ({ key: domain, domain, hostname: domain, sections: LOADING, fatal: null, done: false });
 
-function useOverview(domain: string): OverviewState {
+type OverviewEvent = { type: string; section?: SectionName; status?: "ok" | "error"; data?: unknown; error?: string; message?: string; domain?: string; hostname?: string };
+
+async function streamOverview(domain: string, sections: SectionName[] | null, signal: AbortSignal, onEvent: (e: OverviewEvent) => void) {
+  const qs = new URLSearchParams({ domain, ...(sections ? { sections: sections.join(",") } : {}) });
+  const res = await fetch(`/api/v1/overview?${qs}`, { signal });
+  if (!res.ok) throw new Error(await errorMessage(res));
+  await readNdjson<OverviewEvent>(res, onEvent);
+}
+
+function withSections(s: OverviewState, names: SectionName[], value: { status: "loading" } | { status: "error"; error: string }): OverviewState {
+  return { ...s, sections: { ...s.sections, ...Object.fromEntries(names.map((n) => [n, value])) } as Sections };
+}
+
+function useOverview(domain: string): OverviewState & { retry: (section: SectionName) => void } {
   // State is tagged with the domain it belongs to; a new domain starts from a fresh state.
   const [state, setState] = useState<OverviewState>(() => fresh(""));
+  const retries = useRef<AbortController[]>([]);
+
+  const handlers = useCallback((dom: string, group: SectionName[] | null) => {
+    const update = (fn: (s: OverviewState) => OverviewState) => setState((s) => fn(s.key === dom ? s : fresh(dom)));
+    const onEvent = (e: OverviewEvent) => {
+      if (e.type === "meta") update((s) => ({ ...s, domain: e.domain!, hostname: e.hostname! }));
+      else if (e.type === "section" && e.section) {
+        const section = e.section;
+        const value = e.status === "ok" ? { status: "ok" as const, data: e.data } : { status: "error" as const, error: e.error ?? "Failed" };
+        update((s) => ({ ...s, sections: { ...s.sections, [section]: value } as Sections }));
+      } else if (e.type === "error") {
+        update((s) => (group ? withSections(s, group, { status: "error", error: e.message ?? "Failed" }) : { ...s, fatal: e.message ?? "Failed" }));
+      }
+    };
+    return { update, onEvent };
+  }, []);
 
   useEffect(() => {
     if (!domain) return;
     const ctrl = new AbortController();
-    const update = (fn: (s: OverviewState) => OverviewState) => setState((s) => fn(s.key === domain ? s : fresh(domain)));
-    (async () => {
-      try {
-        const res = await fetch(`/api/v1/overview?domain=${encodeURIComponent(domain)}`, { signal: ctrl.signal });
-        if (!res.ok) throw new Error(await errorMessage(res));
-        await readNdjson<{ type: string; section?: SectionName; status?: "ok" | "error"; data?: unknown; error?: string; message?: string; domain?: string; hostname?: string }>(res, (e) => {
-          if (e.type === "meta") update((s) => ({ ...s, domain: e.domain!, hostname: e.hostname! }));
-          else if (e.type === "section" && e.section) {
-            const section = e.section;
-            const value = e.status === "ok" ? { status: "ok" as const, data: e.data } : { status: "error" as const, error: e.error ?? "Failed" };
-            update((s) => ({ ...s, sections: { ...s.sections, [section]: value } as Sections }));
-          } else if (e.type === "error") update((s) => ({ ...s, fatal: e.message ?? "Failed" }));
-        });
-        update((s) => ({ ...s, done: true }));
-      } catch (err) {
-        if (!ctrl.signal.aborted) update((s) => ({ ...s, fatal: (err as Error).message, done: true }));
-      }
-    })();
-    return () => ctrl.abort();
-  }, [domain]);
+    const { update, onEvent } = handlers(domain, null);
+    streamOverview(domain, null, ctrl.signal, onEvent)
+      .then(() => update((s) => ({ ...s, done: true })))
+      .catch((err: Error) => {
+        if (!ctrl.signal.aborted) update((s) => ({ ...s, fatal: err.message, done: true }));
+      });
+    const pending = retries.current;
+    return () => {
+      ctrl.abort();
+      pending.splice(0).forEach((c) => c.abort());
+    };
+  }, [domain, handlers]);
 
-  return state.key === domain ? state : fresh(domain);
+  /** Re-run one section (homepage and crawlability are fetched together). */
+  const retry = useCallback(
+    (section: SectionName) => {
+      const group: SectionName[] = section === "homepage" || section === "crawlability" ? ["homepage", "crawlability"] : [section];
+      const { update, onEvent } = handlers(domain, group);
+      update((s) => withSections(s, group, { status: "loading" }));
+      const ctrl = new AbortController();
+      retries.current.push(ctrl);
+      streamOverview(domain, group, ctrl.signal, onEvent).catch((err: Error) => {
+        if (!ctrl.signal.aborted) update((s) => withSections(s, group, { status: "error", error: err.message }));
+      });
+    },
+    [domain, handlers],
+  );
+
+  return { ...(state.key === domain ? state : fresh(domain)), retry };
 }
 
 export function TrafficTool() {
@@ -121,7 +157,17 @@ function Intro() {
   );
 }
 
-function SectionBody<K extends SectionName>({ state, children, rows = 4 }: { state: SectionState<K>; children: (data: SectionMap[K]) => React.ReactNode; rows?: number }) {
+function SectionBody<K extends SectionName>({
+  state,
+  children,
+  rows = 4,
+  onRetry,
+}: {
+  state: SectionState<K>;
+  children: (data: SectionMap[K]) => React.ReactNode;
+  rows?: number;
+  onRetry?: () => void;
+}) {
   if (state.status === "loading")
     return (
       <div className="space-y-3 p-5">
@@ -130,12 +176,17 @@ function SectionBody<K extends SectionName>({ state, children, rows = 4 }: { sta
         ))}
       </div>
     );
-  if (state.status === "error") return <div className="p-5"><ErrorNote message={state.error} /></div>;
+  if (state.status === "error")
+    return (
+      <div className="p-5">
+        <ErrorNote message={state.error} onRetry={onRetry} />
+      </div>
+    );
   return <>{children(state.data)}</>;
 }
 
 function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
-  const { sections: s, domain, hostname } = overview;
+  const { sections: s, domain, hostname, retry } = overview;
   const [metric, setMetric] = useState<"rank" | "visits">("rank");
   const traffic = s.traffic.status === "ok" ? s.traffic.data : null;
   const home = s.homepage.status === "ok" ? s.homepage.data : null;
@@ -194,7 +245,7 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
           Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-[98px] rounded-[14px]" />)
         ) : s.traffic.status === "error" ? (
           <div className="col-span-2 md:col-span-3">
-            <ErrorNote title="Traffic data unavailable" message={s.traffic.error} />
+            <ErrorNote title="Traffic data unavailable" message={s.traffic.error} onRetry={() => retry("traffic")} />
           </div>
         ) : (
           <>
@@ -238,7 +289,7 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
           }
         />
         <div className="p-5">
-          <SectionBody state={s.traffic} rows={5}>
+          <SectionBody state={s.traffic} rows={5} onRetry={() => retry("traffic")}>
             {(t) =>
               t.estimatesByDay.length ? (
                 <>
@@ -269,7 +320,7 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader title="Homepage SEO snapshot" icon={<Stethoscope className="h-4 w-4 text-ink-3" aria-hidden />} source="live fetch" />
-          <SectionBody state={s.homepage} rows={6}>
+          <SectionBody state={s.homepage} rows={6} onRetry={() => retry("homepage")}>
             {(h) => (
               <div className="space-y-4 p-5">
                 <div className="flex items-center gap-5">
@@ -298,7 +349,7 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
         <div className="space-y-6">
           <Card>
             <CardHeader title="Technology stack" icon={<Cpu className="h-4 w-4 text-ink-3" aria-hidden />} source="headers & HTML" />
-            <SectionBody state={s.homepage} rows={4}>
+            <SectionBody state={s.homepage} rows={4} onRetry={() => retry("homepage")}>
               {(h) => (
                 <div className="p-5">
                   <TechStack technologies={h.technologies} />
@@ -308,7 +359,7 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
           </Card>
           <Card>
             <CardHeader title="Crawlability" icon={<Link2 className="h-4 w-4 text-ink-3" aria-hidden />} source="robots.txt & sitemaps" />
-            <SectionBody state={s.crawlability} rows={4}>
+            <SectionBody state={s.crawlability} rows={4} onRetry={() => retry("crawlability")}>
               {(c) => (
                 <div className="p-5">
                   <KeyValue
@@ -332,7 +383,7 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader title="Server & performance" icon={<Server className="h-4 w-4 text-ink-3" aria-hidden />} source="live fetch" />
-          <SectionBody state={s.homepage}>
+          <SectionBody state={s.homepage} onRetry={() => retry("homepage")}>
             {(h) => (
               <div className="p-5">
                 <KeyValue
@@ -351,7 +402,7 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
         </Card>
         <Card>
           <CardHeader title="Security" icon={<ShieldCheck className="h-4 w-4 text-ink-3" aria-hidden />} source="TLS handshake & headers" />
-          <SectionBody state={s.homepage}>
+          <SectionBody state={s.homepage} onRetry={() => retry("homepage")}>
             {(h) => (
               <div className="p-5">
                 <KeyValue
@@ -373,7 +424,7 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader title="Domain registration" icon={<Lock className="h-4 w-4 text-ink-3" aria-hidden />} source="RDAP" />
-          <SectionBody state={s.registration}>
+          <SectionBody state={s.registration} onRetry={() => retry("registration")}>
             {(r) =>
               r ? (
                 <div className="p-5">
@@ -395,7 +446,7 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
         </Card>
         <Card>
           <CardHeader title="DNS & email" icon={<Globe className="h-4 w-4 text-ink-3" aria-hidden />} source="DNS" />
-          <SectionBody state={s.dns}>
+          <SectionBody state={s.dns} onRetry={() => retry("dns")}>
             {(d) => (
               <div className="p-5">
                 <KeyValue
@@ -425,19 +476,30 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
 
       <Card>
         <CardHeader title="History" icon={<History className="h-4 w-4 text-ink-3" aria-hidden />} source={<a className="underline-offset-2 hover:underline" href="https://web.archive.org" target="_blank" rel="noreferrer">Internet Archive</a>} />
-        <SectionBody state={s.history} rows={2}>
+        <SectionBody state={s.history} rows={2} onRetry={() => retry("history")}>
           {(h) =>
             h.firstCapture ? (
               <div className="p-5">
                 <p className="text-sm text-ink-2">
-                  First archived on <span className="font-medium text-ink">{fmtDate(h.firstCapture)}</span>, with snapshots in {h.years.length} different years.{" "}
+                  First archived on <span className="font-medium text-ink">{fmtDate(h.firstCapture)}</span>
+                  {h.years && `, with snapshots in ${h.years.length} different years`}
+                  {h.lastCapture && (
+                    <>
+                      ; latest snapshot <span className="font-medium text-ink">{fmtDate(h.lastCapture)}</span>
+                    </>
+                  )}
+                  .{" "}
                   {h.firstSnapshotUrl && (
                     <a className="text-accent-ink hover:underline" href={h.firstSnapshotUrl} target="_blank" rel="noreferrer">
                       See the oldest snapshot
                     </a>
                   )}
                 </p>
-                <YearStrip years={h.years} until={h.checkedYear} />
+                {h.years ? (
+                  <YearStrip years={h.years} until={h.checkedYear} />
+                ) : (
+                  <p className="mt-2 text-xs text-ink-3">The archive didn&apos;t return its year-by-year breakdown in time (common for very large sites). The dates above are complete.</p>
+                )}
               </div>
             ) : (
               <p className="p-5 text-sm text-ink-3">The Internet Archive has no snapshots of this domain.</p>

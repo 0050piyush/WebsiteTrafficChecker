@@ -149,12 +149,24 @@ function trimReport(report: PageReport): HomepageSection {
   return { ...rest, links: linkStats, images: imageStats };
 }
 
-/** Run every overview source concurrently, reporting each section as soon as it is ready. */
+/** Parse a "sections=a,b" list; unknown names are ignored, empty means all sections. */
+export function parseSections(raw: string | null): SectionName[] | undefined {
+  const list = (raw ?? "").split(",").filter((s): s is SectionName => SECTION_NAMES.includes(s as SectionName));
+  return list.length ? list : undefined;
+}
+
+/**
+ * Run the overview sources concurrently, reporting each section as soon as it is ready.
+ * `only` limits the run to some sections (used to retry one that failed); crawlability
+ * depends on the homepage fetch, so asking for either runs both.
+ */
 export async function runOverview(
   target: { hostname: string; domain: string },
   emit: (event: SectionEvent) => void,
   signal?: AbortSignal,
+  only?: SectionName[],
 ): Promise<void> {
+  const want = (s: SectionName) => !only || only.includes(s);
   const timed = async <K extends SectionName>(section: K, fn: () => Promise<SectionMap[K]>) => {
     const start = Date.now();
     try {
@@ -168,15 +180,16 @@ export async function runOverview(
   };
 
   await Promise.all([
-    timed("traffic", async () => buildTrafficSection(await getTrancoRanks(target.domain))),
-    (async () => {
-      const report = await timed("homepage", async () => trimReport(await homepageReport(target.hostname, signal)));
-      if (report) await timed("crawlability", () => crawlability(report, signal));
-      else emit({ section: "crawlability", status: "error", error: "Skipped because the homepage could not be fetched", ms: 0 });
-    })(),
-    timed("registration", () => getRdap(target.domain)),
-    timed("dns", () => getDnsInfo(target.hostname, target.domain)),
-    timed("history", () => getWaybackInfo(target.domain)),
-    timed("authority", async () => ({ enabled: isOpenPageRankEnabled(), value: await getOpenPageRank(target.domain) })),
+    want("traffic") && timed("traffic", async () => buildTrafficSection(await getTrancoRanks(target.domain))),
+    (want("homepage") || want("crawlability")) &&
+      (async () => {
+        const report = await timed("homepage", async () => trimReport(await homepageReport(target.hostname, signal)));
+        if (report) await timed("crawlability", () => crawlability(report, signal));
+        else emit({ section: "crawlability", status: "error", error: "Skipped because the homepage could not be fetched", ms: 0 });
+      })(),
+    want("registration") && timed("registration", () => getRdap(target.domain)),
+    want("dns") && timed("dns", () => getDnsInfo(target.hostname, target.domain)),
+    want("history") && timed("history", () => getWaybackInfo(target.domain)),
+    want("authority") && timed("authority", async () => ({ enabled: isOpenPageRankEnabled(), value: await getOpenPageRank(target.domain) })),
   ]);
 }

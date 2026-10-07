@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseTrancoResponse } from "@/lib/sources/tranco";
 import { parseRdap } from "@/lib/sources/rdap";
-import { parseWaybackCdx } from "@/lib/sources/wayback";
+import { buildWaybackInfo, parseAvailability, parseCdxTimestamps } from "@/lib/sources/wayback";
 import { parsePageSpeed } from "@/lib/sources/pagespeed";
 import { parseOpenPageRank } from "@/lib/sources/openpagerank";
 import { parseAmazon, parseDuckDuckGo, parseOpenSearch } from "@/lib/sources/autocomplete";
@@ -87,13 +87,42 @@ describe("RDAP", () => {
   });
 });
 
-describe("Wayback CDX", () => {
-  it("finds the first capture and archived years", () => {
-    const w = parseWaybackCdx("example.com", [["timestamp"], ["20020120142510"], ["19980101000000"], ["20260105101010"]]);
+describe("Wayback Machine", () => {
+  it("parses CDX timestamps and the availability API", () => {
+    expect(parseCdxTimestamps([["timestamp"], ["20020120142510"], ["19980101000000"], ["bogus"]])).toEqual(["19980101000000", "20020120142510"]);
+    expect(parseCdxTimestamps([])).toEqual([]);
+    expect(
+      parseAvailability({ url: "example.com", archived_snapshots: { closest: { status: "200", available: true, url: "http://web.archive.org/web/20130919044612/http://example.com/", timestamp: "20130919044612" } } }),
+    ).toBe("20130919044612");
+    expect(parseAvailability({ archived_snapshots: {} })).toBeNull();
+  });
+
+  it("builds a full history when every lookup succeeds", () => {
+    const w = buildWaybackInfo("example.com", { first: "19980101000000", latest: "20261001120000", yearStamps: ["19980101000000", "20020120142510", "20260105101010"] });
     expect(w.firstCapture).toBe("1998-01-01T00:00:00.000Z");
+    expect(w.lastCapture).toBe("2026-10-01T12:00:00.000Z");
     expect(w.years).toEqual([1998, 2002, 2026]);
+    expect(w.lastYear).toBe(2026);
     expect(w.firstSnapshotUrl).toBe("https://web.archive.org/web/19980101000000/example.com");
-    expect(parseWaybackCdx("x.com", []).firstCapture).toBeNull();
+  });
+
+  it("still reports dates when the slow year scan times out", () => {
+    const w = buildWaybackInfo("instagram.com", { first: "20101006000000", latest: "20261006000000", yearStamps: null });
+    expect(w.firstCapture).toBe("2010-10-06T00:00:00.000Z");
+    expect(w.years).toBeNull();
+    expect(w.ageYears).toBeGreaterThan(15);
+  });
+
+  it("falls back to the year scan for the first capture", () => {
+    const w = buildWaybackInfo("x.com", { first: null, latest: null, yearStamps: ["20050101000000", "20060101000000"] });
+    expect(w.firstCapture).toBe("2005-01-01T00:00:00.000Z");
+    expect(w.years).toEqual([2005, 2006]);
+  });
+
+  it("reports never-archived domains", () => {
+    const w = buildWaybackInfo("new.example", { first: null, latest: null, yearStamps: [] });
+    expect(w.firstCapture).toBeNull();
+    expect(w.years).toEqual([]);
   });
 });
 
