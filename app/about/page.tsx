@@ -28,11 +28,8 @@ export default function AboutPage() {
           site by several times, and neither tells you why.
         </p>
         <p>
-          TrafficLens takes a different approach. It checks websites live, uses open research data such as the{" "}
-          <a href="https://tranco-list.eu" target="_blank" rel="noreferrer" className="text-accent-ink hover:underline">
-            Tranco ranking
-          </a>{" "}
-          and public registries, and publishes the{" "}
+          TrafficLens takes a different approach. It checks websites live, uses open research data such as popularity rankings combined from several independent sources and public registries, and
+          publishes the{" "}
           <Link href="/methodology" className="text-accent-ink hover:underline">
             method behind every metric
           </Link>

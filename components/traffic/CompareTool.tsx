@@ -60,9 +60,9 @@ export function CompareTool() {
   // Colors follow the entity's position in the user's list, so they never repaint.
   const colored = state.results.map((r, i) => ({ ...r, color: SERIES[i] }));
   const ok = colored.filter((r): r is Result & { ok: true; color: string } => r.ok);
-  const ranked = ok.filter((r) => r.data.tranco.ranks.length);
-  const series = ranked.map((r) => ({ id: r.domain!, label: r.domain!, color: r.color, points: r.data.tranco.ranks.map((p) => ({ x: p.date, y: p.rank })) }));
-  const ranks = ranked.flatMap((r) => r.data.tranco.ranks.map((p) => p.rank));
+  const ranked = ok.filter((r) => r.data.popularity.ranks.length);
+  const series = ranked.map((r) => ({ id: r.domain!, label: r.domain!, color: r.color, points: r.data.popularity.ranks.map((p) => ({ x: p.date, y: p.rank })) }));
+  const ranks = ranked.flatMap((r) => r.data.popularity.ranks.map((p) => p.rank));
   const useLog = ranks.length > 1 && Math.max(...ranks) / Math.min(...ranks) > 20;
 
   const exportCsv = () => {
@@ -71,8 +71,8 @@ export function CompareTool() {
       toCsv(
         colored.map((r) => ({
           domain: r.domain ?? r.input,
-          rank: r.ok ? (r.data.tranco.latest?.rank ?? "") : "",
-          rank_change: r.ok ? (r.data.tranco.change ?? "") : "",
+          rank: r.ok ? (r.data.popularity.latest?.rank ?? "") : "",
+          rank_change: r.ok ? (r.data.popularity.change ?? "") : "",
           est_monthly_visits: r.ok ? Math.round(r.data.estimate?.mid ?? 0) || "" : "",
           est_low: r.ok ? Math.round(r.data.estimate?.low ?? 0) || "" : "",
           est_high: r.ok ? Math.round(r.data.estimate?.high ?? 0) || "" : "",
@@ -143,7 +143,7 @@ export function CompareTool() {
       {!state.loading && colored.length > 0 && (
         <div className="space-y-6">
           <Card>
-            <CardHeader title="Popularity rank over time" subtitle={useLog ? "Log scale; lower is better" : "Lower is better"} source="Tranco" />
+            <CardHeader title="Popularity rank over time" subtitle={useLog ? "Log scale; lower is better" : "Lower is better"} source="all sources" />
             <div className="p-5">
               {series.length ? (
                 <>
@@ -157,7 +157,7 @@ export function CompareTool() {
                     height={280}
                     yFormat={(n) => (useLog || n >= 1_000_000 ? `#${fmtCompact(n)}` : `#${fmtNumber(n)}`)}
                     xFormat={(x) => fmtDate(x, { month: "short", day: "numeric" })}
-                    ariaLabel={`Tranco rank history for ${series.map((s) => s.label).join(", ")}`}
+                    ariaLabel={`Popularity rank history for ${series.map((s) => s.label).join(", ")}`}
                   />
                 </>
               ) : (
@@ -203,8 +203,8 @@ export function CompareTool() {
                       </td>
                       {r.ok ? (
                         <>
-                          <td className="px-3 py-3 text-right text-ink">{fmtRank(r.data.tranco.latest?.rank)}</td>
-                          <td className="px-3 py-3 text-right">{r.data.tranco.ranks.length ? <Delta value={r.data.tranco.change} /> : "—"}</td>
+                          <td className="px-3 py-3 text-right text-ink">{fmtRank(r.data.popularity.latest?.rank)}</td>
+                          <td className="px-3 py-3 text-right">{r.data.popularity.ranks.length ? <Delta value={r.data.popularity.change} /> : "—"}</td>
                           <td className="px-3 py-3 text-right text-ink">
                             {r.data.estimate ? (
                               <>

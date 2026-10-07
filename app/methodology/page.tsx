@@ -54,8 +54,8 @@ export default function Page() {
 
       <Section id="traffic" title="Traffic estimates">
         <p>
-          <strong>The rank is measured data.</strong> We use the <a href="https://tranco-list.eu" target="_blank" rel="noreferrer">Tranco list</a>, a research ranking of the top one million sites. Tranco averages several independent popularity
-          sources (such as Chrome UX Report, Cloudflare Radar and other top lists) over 30 days. Because no single source dominates, it&apos;s much harder to manipulate than older rankings. It ranks registrable domains, so{" "}
+          <strong>The rank is measured data.</strong> We use a research ranking of the top one million sites that averages several independent popularity sources (such as Chrome UX Report, Cloudflare Radar and other
+          top lists) over 30 days. Because no single source dominates, it&apos;s much harder to manipulate than older rankings. It ranks registrable domains, so{" "}
           <code>blog.example.com</code> shares the rank of <code>example.com</code>.
         </p>
         <p>
@@ -238,6 +238,13 @@ export default function Page() {
         </p>
         <p>
           Questions or corrections? <Link href="https://github.com/0050piyush/WebsiteTrafficChecker/issues">Open an issue on GitHub</Link>.
+        </p>
+        <p className="text-xs text-ink-3">
+          Data credits: popularity ranks from{" "}
+          <a href="https://tranco-list.eu" target="_blank" rel="noreferrer">
+            Tranco
+          </a>
+          , built from Chrome UX Report (CC BY-SA 4.0), Cloudflare Radar (CC BY-NC 4.0), Majestic (CC BY 3.0), Cisco Umbrella and Farsight.
         </p>
       </Section>
     </div>

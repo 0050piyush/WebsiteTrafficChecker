@@ -68,7 +68,7 @@ export default function PrivacyPage() {
         <p>To build reports, our servers (not your browser) send the domain, URL or keyword you entered to these services. They receive our server&apos;s address, not yours:</p>
         <ul>
           <li>The website you&apos;re analyzing, which we fetch as &ldquo;TrafficLensBot&rdquo;.</li>
-          <li>Tranco (popularity ranks), domain registries via RDAP and rdap.org, the Internet Archive, and public DNS.</li>
+          <li>A website popularity ranking service, domain registries via RDAP and rdap.org, the Internet Archive, and public DNS.</li>
           <li>Google PageSpeed Insights, only when you run a Core Web Vitals test.</li>
           <li>Open PageRank, if the site operator has enabled it.</li>
           <li>Autocomplete services from Google, YouTube, Bing, DuckDuckGo and Amazon, for keyword ideas.</li>

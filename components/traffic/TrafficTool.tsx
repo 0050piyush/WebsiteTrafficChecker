@@ -162,7 +162,7 @@ function Intro() {
   return (
     <div className="grid gap-4 md:grid-cols-3">
       {[
-        ["Real popularity data", "Ranks come from Tranco, an academic ranking that combines several independent sources and resists manipulation."],
+        ["Real popularity data", "Ranks combine several independent popularity sources, averaged over 30 days, so they're hard to manipulate."],
         ["Honest estimates", "Visits are shown as a range with the model published, because every traffic number is an estimate."],
         ["Everything else, live", "We fetch the site right now to read its SEO, tech stack, TLS certificate, DNS and robots.txt."],
       ].map(([t, b]) => (
@@ -211,7 +211,7 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
   const reg = s.registration.status === "ok" ? s.registration.data : null;
   const hist = s.history.status === "ok" ? s.history.data : null;
   const auth = s.authority.status === "ok" ? s.authority.data : null;
-  const rank = traffic?.tranco.latest?.rank ?? null;
+  const rank = traffic?.popularity.latest?.rank ?? null;
   const siteUrl = home?.finalUrl ?? `https://${hostname}/`;
 
   const chartSeries = useMemo(() => {
@@ -219,7 +219,7 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
     return [
       {
         id: metric,
-        label: metric === "rank" ? "Tranco rank" : "Est. monthly visits",
+        label: metric === "rank" ? "Popularity rank" : "Est. monthly visits",
         color: "var(--series-1)",
         points: traffic.estimatesByDay.map((d) => ({ x: d.date, y: metric === "rank" ? d.rank : d.visits })),
       },
@@ -290,9 +290,9 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
               hint="All visits (search, direct, social and referral), estimated from the popularity rank. Tools like Ahrefs show organic search traffic only, from a different model."
             />
             <Stat
-              label="Popularity rank (Tranco)"
+              label="Popularity rank (all sources)"
               value={fmtRank(rank)}
-              sub={traffic?.tranco.change !== null && traffic?.tranco.change !== undefined ? <><Delta value={traffic.tranco.change} /> over {traffic.tranco.ranks.length} days</> : "Global, all categories"}
+              sub={traffic?.popularity.change !== null && traffic?.popularity.change !== undefined ? <><Delta value={traffic.popularity.change} /> over {traffic.popularity.ranks.length} days</> : "Global, all categories"}
             />
             <Stat label="Popularity tier" value={traffic?.tier.label ?? "—"} sub={traffic?.tier.description} />
           </>
@@ -308,8 +308,8 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
       <Card>
         <CardHeader
           title="Popularity trend"
-          subtitle={traffic?.tranco.ranks.length ? `Daily Tranco rank, ${fmtDate(traffic.tranco.ranks[0].date)} – ${fmtDate(traffic.tranco.latest?.date)}` : undefined}
-          source={<a className="underline-offset-2 hover:underline" href="https://tranco-list.eu" target="_blank" rel="noreferrer">Tranco</a>}
+          subtitle={traffic?.popularity.ranks.length ? `Daily popularity rank, ${fmtDate(traffic.popularity.ranks[0].date)} – ${fmtDate(traffic.popularity.latest?.date)}` : undefined}
+          source="all sources"
           action={
             traffic?.estimatesByDay.length ? (
               <div className="inline-flex rounded-lg border border-line p-0.5" role="group" aria-label="Metric">
@@ -335,7 +335,7 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
                       metric === "rank" ? (n >= 1_000_000 ? `#${fmtCompact(n)}` : `#${fmtNumber(n)}`) : step === undefined ? fmtCompact(n) : fmtAxis(n, step)
                     }
                     xFormat={(x) => fmtDate(x, { month: "short", day: "numeric" })}
-                    ariaLabel={`${metric === "rank" ? "Tranco rank" : "Estimated visits"} for ${domain} over the last ${t.estimatesByDay.length} days`}
+                    ariaLabel={`${metric === "rank" ? "Popularity rank" : "Estimated visits"} for ${domain} over the last ${t.estimatesByDay.length} days`}
                   />
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-ink-3">
                     <span>{metric === "rank" ? "Lower is better: #1 is the most popular site on the web." : "Modeled from rank; treat as an order-of-magnitude guide."}</span>

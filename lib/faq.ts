@@ -25,11 +25,11 @@ export const FAQ: FaqGroup[] = [
     id: "traffic",
     title: "Traffic data",
     items: [
-      { q: "Where does the traffic data come from?", a: "From the Tranco list, a research ranking of the top one million websites that averages several independent popularity sources over 30 days, which makes it hard to game. We convert the rank to a monthly visits range with a published model.", link: { href: "/methodology#traffic", label: "Read the method" } },
+      { q: "Where does the traffic data come from?", a: "From a research ranking of the top one million websites that combines several independent popularity sources over 30 days, which makes it hard to game. We convert the rank to a monthly visits range with a published model.", link: { href: "/methodology#traffic", label: "Read the method" } },
       { q: "How accurate are the traffic estimates?", a: "Treat them as order-of-magnitude: the real number usually falls within the range we show. Every traffic tool estimates; we show a range and the method instead of a single number that only looks exact. The popularity rank itself is measured data." },
       { q: "Why does Ahrefs, Semrush or Similarweb show a different number?", a: "They often measure something else (for example, Ahrefs' organic traffic counts only visits from Google search, while ours counts all visits) and use different models. Expect tools to disagree by 2–3×; compare trends and competitors within one tool.", link: { href: "/methodology#other-tools", label: "Why tools differ" } },
       { q: "Why is my site \"Unranked\"?", a: "It isn't in the top one million sites, which usually means fewer than about 9,000 visits a month. Rankings track registrable domains, so subdomains share their parent domain's rank." },
-      { q: "How often is the data updated?", a: "Popularity ranks come from Tranco's daily list. Page, SEO, technology, TLS and DNS data is fetched live when you search. Registration and archive data can be cached for up to 24 hours." },
+      { q: "How often is the data updated?", a: "Popularity ranks are updated daily. Page, SEO, technology, TLS and DNS data is fetched live when you search. Registration and archive data can be cached for up to 24 hours." },
     ],
   },
   {

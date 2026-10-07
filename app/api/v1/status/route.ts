@@ -11,7 +11,7 @@ export async function GET() {
     ok: true,
     version: "1.0.0",
     integrations: {
-      tranco: true,
+      popularity: true,
       rdap: true,
       wayback: true,
       dns: true,

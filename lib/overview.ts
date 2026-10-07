@@ -16,7 +16,8 @@ import { siteMarket, type Market } from "./markets";
 import { stripWww } from "./url";
 
 export interface TrafficSection {
-  tranco: TrancoResult;
+  /** Daily popularity ranks, combined from several independent sources. */
+  popularity: TrancoResult;
   estimate: VisitEstimate | null;
   tier: { label: string; description: string };
   estimatesByDay: { date: string; rank: number; visits: number }[];
@@ -86,13 +87,13 @@ export const SECTION_NAMES: SectionName[] = ["traffic", "homepage", "crawlabilit
 /** Sections built from the homepage fetch; asking for any of them runs them all. */
 export const HOMEPAGE_SECTIONS: SectionName[] = ["homepage", "crawlability", "keywords"];
 
-export function buildTrafficSection(tranco: TrancoResult): TrafficSection {
-  const rank = tranco.latest?.rank ?? null;
+export function buildTrafficSection(popularity: TrancoResult): TrafficSection {
+  const rank = popularity.latest?.rank ?? null;
   return {
-    tranco,
+    popularity,
     estimate: rank ? estimateMonthlyVisits(rank) : null,
     tier: popularityTier(rank),
-    estimatesByDay: tranco.ranks.map((r) => ({ date: r.date, rank: r.rank, visits: Math.round(estimateMonthlyVisits(r.rank)?.mid ?? 0) })),
+    estimatesByDay: popularity.ranks.map((r) => ({ date: r.date, rank: r.rank, visits: Math.round(estimateMonthlyVisits(r.rank)?.mid ?? 0) })),
   };
 }
 
