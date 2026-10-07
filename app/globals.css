@@ -1,0 +1,174 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  color-scheme: light;
+  --bg: #f7f7f5;
+  --surface: #ffffff;
+  --surface-2: #f2f2ef;
+  --surface-3: #e9e8e3;
+  --line: rgba(11, 11, 11, 0.1);
+  --line-strong: rgba(11, 11, 11, 0.18);
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --ink-3: #6b6a66;
+  --accent: #256abf;
+  --accent-hover: #1c5cab;
+  --accent-soft: #e8f1fc;
+  --accent-ink: #1c5cab;
+  --on-accent: #ffffff;
+  /* status: fills (with icon + label), plus darker text steps for AA contrast */
+  --good: #0ca30c;
+  --good-ink: #006300;
+  --good-soft: #e6f6e6;
+  --warn: #fab219;
+  --warn-ink: #8a5a00;
+  --warn-soft: #fef4dc;
+  --serious: #ec835a;
+  --bad: #d03b3b;
+  --bad-ink: #b42323;
+  --bad-soft: #fbe9e9;
+  /* charts */
+  --chart-grid: #e1e0d9;
+  --chart-axis: #c3c2b7;
+  --chart-label: #6b6a66;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #4a3aa7;
+  --series-8: #e34948;
+  --shadow: 0 1px 2px rgba(11, 11, 11, 0.04), 0 1px 1px rgba(11, 11, 11, 0.03);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0d0d0d;
+  --surface: #1a1a19;
+  --surface-2: #222220;
+  --surface-3: #2c2c2a;
+  --line: rgba(255, 255, 255, 0.1);
+  --line-strong: rgba(255, 255, 255, 0.18);
+  --ink: #ffffff;
+  --ink-2: #c3c2b7;
+  --ink-3: #9a9890;
+  --accent: #2a78d6;
+  --accent-hover: #3987e5;
+  --accent-soft: #15253a;
+  --accent-ink: #86b6ef;
+  --on-accent: #ffffff;
+  --good: #0ca30c;
+  --good-ink: #3fc23f;
+  --good-soft: #10260f;
+  --warn: #fab219;
+  --warn-ink: #f6c453;
+  --warn-soft: #2b2310;
+  --serious: #ec835a;
+  --bad: #d03b3b;
+  --bad-ink: #f07f7f;
+  --bad-soft: #301616;
+  --chart-grid: #2c2c2a;
+  --chart-axis: #383835;
+  --chart-label: #9a9890;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+  --series-7: #9085e9;
+  --series-8: #e66767;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-on-accent: var(--on-accent);
+  --color-good: var(--good);
+  --color-good-ink: var(--good-ink);
+  --color-good-soft: var(--good-soft);
+  --color-warn: var(--warn);
+  --color-warn-ink: var(--warn-ink);
+  --color-warn-soft: var(--warn-soft);
+  --color-serious: var(--serious);
+  --color-bad: var(--bad);
+  --color-bad-ink: var(--bad-ink);
+  --color-bad-soft: var(--bad-soft);
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 0%, var(--surface-3) 50%, var(--surface-2) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+details > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}

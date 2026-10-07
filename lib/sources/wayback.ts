@@ -8,6 +8,10 @@ import { getJson } from "./http";
 
 export interface WaybackInfo {
   firstCapture: string | null;
+  /** Years since the first capture. */
+  ageYears: number | null;
+  /** Year the archive was checked, so clients can draw a timeline to "now". */
+  checkedYear: number;
   lastYear: number | null;
   years: number[];
   firstSnapshotUrl: string | null;
@@ -31,10 +35,14 @@ export function parseWaybackCdx(domain: string, json: unknown): WaybackInfo {
     .map((r) => String(r?.[0] ?? ""))
     .filter((t) => /^\d{8,14}$/.test(t))
     .sort();
-  if (!stamps.length) return { firstCapture: null, lastYear: null, years: [], firstSnapshotUrl: null };
+  const checkedYear = new Date().getUTCFullYear();
+  if (!stamps.length) return { firstCapture: null, ageYears: null, checkedYear, lastYear: null, years: [], firstSnapshotUrl: null };
   const years = [...new Set(stamps.map((t) => Number(t.slice(0, 4))))].sort((a, b) => a - b);
+  const firstCapture = tsToIso(stamps[0]);
   return {
-    firstCapture: tsToIso(stamps[0]),
+    firstCapture,
+    ageYears: firstCapture ? Math.round(((Date.now() - Date.parse(firstCapture)) / (365.25 * 86_400_000)) * 10) / 10 : null,
+    checkedYear,
     lastYear: years[years.length - 1],
     years,
     firstSnapshotUrl: `https://web.archive.org/web/${stamps[0]}/${domain}`,
