@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Code2, Eye, Heart, Lock, Scale, Zap } from "lucide-react";
-import { SITE } from "@/lib/site";
 import { PageHeader } from "@/components/ui";
 
 export const metadata: Metadata = {
@@ -67,16 +66,11 @@ export default function AboutPage() {
       <div className="card mt-10 flex flex-col items-start gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="font-semibold text-ink">Have feedback or want to help?</h2>
-          <p className="mt-1 text-sm text-ink-2">Tell us what to build next, report wrong data, or contribute on GitHub.</p>
+          <p className="mt-1 text-sm text-ink-2">Tell us what to build next or report wrong data.</p>
         </div>
-        <div className="flex shrink-0 gap-2">
-          <Link href="/contact" className="inline-flex h-10 items-center rounded-lg bg-accent px-4 text-sm font-medium text-on-accent hover:bg-accent-hover">
-            Contact us
-          </Link>
-          <a href={SITE.repoUrl} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center rounded-lg border border-line-strong bg-surface px-4 text-sm font-medium text-ink hover:bg-surface-2">
-            GitHub
-          </a>
-        </div>
+        <Link href="/contact" className="inline-flex h-10 shrink-0 items-center rounded-lg bg-accent px-4 text-sm font-medium text-on-accent hover:bg-accent-hover">
+          Contact us
+        </Link>
       </div>
     </div>
   );

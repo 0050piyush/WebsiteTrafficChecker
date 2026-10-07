@@ -18,7 +18,7 @@ export const FAQ: FaqGroup[] = [
       { q: "What is TrafficLens?", a: "A free SEO toolkit: a website traffic checker, competitor comparison, live site audits, an on-page SEO checker with a broken link checker, a keyword generator and Core Web Vitals tests. Every metric shows where it came from." },
       { q: "Is it really free?", a: "Yes. Every tool works for free, without an account or a credit card. Paid plans are coming for heavier use, such as bigger crawls and scheduled monitoring, but the free tools stay free.", link: { href: "/pricing", label: "See pricing" } },
       { q: "Do I need an account?", a: "No. You can sign in with Google or GitHub, but accounts will only be needed for paid features such as saved projects and scheduled audits." },
-      { q: "Is TrafficLens open source?", a: "Yes, under the MIT license. You can read the code, run your own copy, or contribute.", link: { href: "https://github.com/0050piyush/WebsiteTrafficChecker", label: "View on GitHub" } },
+      { q: "Is TrafficLens open source?", a: "Yes, under the MIT license. You can read the code, run your own copy, or contribute." },
     ],
   },
   {

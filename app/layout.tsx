@@ -66,13 +66,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             ))}
           </div>
           <div className="border-t border-line">
-            <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-5 text-xs text-ink-3">
-              <span>
-                © {new Date().getFullYear()} {SITE.name}. Free tools, no sign-up.
-              </span>
-              <a className="hover:text-ink" href={SITE.repoUrl} target="_blank" rel="noreferrer">
-                Source code on GitHub
-              </a>
+            <div className="mx-auto max-w-6xl px-4 py-5 text-xs text-ink-3">
+              © {new Date().getFullYear()} {SITE.name}. Free tools, no sign-up.
             </div>
           </div>
         </footer>
