@@ -182,7 +182,7 @@ export function CompareTool() {
                     <th className="px-5 py-2.5 font-medium">Website</th>
                     <th className="px-3 py-2.5 text-right font-medium">Rank</th>
                     <th className="px-3 py-2.5 text-right font-medium">30-day change</th>
-                    <th className="px-3 py-2.5 text-right font-medium">Est. monthly visits</th>
+                    <th className="px-3 py-2.5 text-right font-medium">Est. monthly visits (all sources)</th>
                     <th className="px-3 py-2.5 font-medium">Tier</th>
                     <th className="px-5 py-2.5" />
                   </tr>

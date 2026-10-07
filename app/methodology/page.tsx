@@ -34,6 +34,7 @@ export default function Page() {
         <ul className="grid gap-1.5 sm:grid-cols-2">
           {[
             ["traffic", "Traffic estimates"],
+            ["other-tools", "Why other tools differ"],
             ["sources", "Domain data sources"],
             ["onpage", "On-page SEO score"],
             ["audit", "Site audit & health score"],
@@ -86,6 +87,24 @@ export default function Page() {
         <p>
           Other tools also estimate traffic, usually from modeled search rankings or clickstream panels. Their numbers look precise but are estimates too. We prefer to show the uncertainty.
         </p>
+      </Section>
+
+      <Section id="other-tools" title="Why Ahrefs, Semrush or Similarweb show different numbers">
+        <ul className="list-disc space-y-2 pl-5">
+          <li>
+            <strong>They often measure something else.</strong> &ldquo;Organic traffic&rdquo; in Ahrefs or Semrush counts only visits from Google&apos;s organic results. Our figure counts all visits: search, direct, social,
+            email and referral. For a well-known brand, total traffic is usually far higher than organic traffic; for a site that lives on search, the two can be close.
+          </li>
+          <li>
+            <strong>They use different evidence.</strong> Ahrefs multiplies the keywords it thinks a site ranks for by estimated search volume and click-through rate; Similarweb models panel and ISP data; we
+            convert a measured popularity rank. Each has blind spots. Keyword models miss traffic from keywords they don&apos;t track. Rank-based estimates run low for sites whose visitors arrive once from
+            search and rarely return, because popularity lists reward repeat and returning users.
+          </li>
+          <li>
+            <strong>How to compare.</strong> Treat any single tool&apos;s number as accurate to roughly 2–3× either way. The trend, and the order of competitors measured with the same tool, are far more
+            reliable than absolute numbers compared across tools.
+          </li>
+        </ul>
       </Section>
 
       <Section id="sources" title="Domain data sources">

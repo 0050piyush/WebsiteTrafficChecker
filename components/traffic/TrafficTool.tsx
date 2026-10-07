@@ -273,10 +273,17 @@ function Report({ overview }: { overview: ReturnType<typeof useOverview> }) {
         ) : (
           <>
             <Stat
-              label="Est. monthly visits"
+              label="Est. monthly visits (all sources)"
               value={traffic?.estimate ? `~${fmtCompact(traffic.estimate.mid)}` : `< ${fmtCompact(UNRANKED_CEILING)}`}
-              sub={traffic?.estimate ? `Range ${fmtCompact(traffic.estimate.low)} – ${fmtCompact(traffic.estimate.high)}` : "Not in the top 1M sites"}
-              hint="Order-of-magnitude estimate derived from the popularity rank"
+              sub={
+                <>
+                  {traffic?.estimate ? `Range ${fmtCompact(traffic.estimate.low)} – ${fmtCompact(traffic.estimate.high)}` : "Not in the top 1M sites"}
+                  <span className="block">
+                    <MethodLink anchor="other-tools">Why other tools differ</MethodLink>
+                  </span>
+                </>
+              }
+              hint="All visits (search, direct, social and referral), estimated from the popularity rank. Tools like Ahrefs show organic search traffic only, from a different model."
             />
             <Stat
               label="Popularity rank (Tranco)"
