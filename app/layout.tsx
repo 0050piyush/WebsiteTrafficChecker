@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
+import { PAGE_GROUPS } from "@/lib/pages";
+import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: {
@@ -43,21 +45,32 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           {children}
         </main>
         <footer className="border-t border-line">
-          <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 text-sm text-ink-3 sm:grid-cols-3">
-            <div>
-              <div className="font-semibold text-ink">TrafficLens</div>
+          <div className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-4 py-10 text-sm text-ink-3 lg:grid-cols-5">
+            <div className="col-span-2 lg:col-span-1">
+              <div className="font-semibold text-ink">{SITE.name}</div>
               <p className="mt-2">A free, open-source SEO toolkit. Live data, transparent methods, no account required.</p>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Link className="hover:text-ink" href="/traffic">Website traffic checker</Link>
-              <Link className="hover:text-ink" href="/audit">Site audit</Link>
-              <Link className="hover:text-ink" href="/analyzer">On-page SEO checker</Link>
-              <Link className="hover:text-ink" href="/keywords">Keyword generator</Link>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Link className="hover:text-ink" href="/methodology">Methodology & data sources</Link>
-              <Link className="hover:text-ink" href="/api-docs">REST API</Link>
-              <a className="hover:text-ink" href="https://github.com/0050piyush/WebsiteTrafficChecker" target="_blank" rel="noreferrer">
+            {PAGE_GROUPS.map((group) => (
+              <nav key={group.title} aria-label={group.title}>
+                <div className="text-xs font-semibold uppercase tracking-wide text-ink-2">{group.title}</div>
+                <ul className="mt-3 flex flex-col gap-1.5">
+                  {group.pages.map((p) => (
+                    <li key={p.href}>
+                      <Link className="hover:text-ink" href={p.href}>
+                        {p.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            ))}
+          </div>
+          <div className="border-t border-line">
+            <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-5 text-xs text-ink-3">
+              <span>
+                © {new Date().getFullYear()} {SITE.name}. Free tools, no sign-up.
+              </span>
+              <a className="hover:text-ink" href={SITE.repoUrl} target="_blank" rel="noreferrer">
                 Source code on GitHub
               </a>
             </div>

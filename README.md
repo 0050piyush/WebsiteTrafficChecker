@@ -1,6 +1,6 @@
 # TrafficLens
 
-**A free, open-source website traffic checker and SEO toolkit.** Check any site's traffic and popularity, audit its SEO with a live crawl, analyze individual pages and generate keyword ideas. No account, no paywall, and every metric explains where it came from.
+**A free, open-source website traffic checker and SEO toolkit.** Check any site's traffic and popularity, audit its SEO with a live crawl, analyze individual pages and generate keyword ideas. Every tool is free without an account, and every metric explains where it came from.
 
 It covers the everyday jobs people use paid suites such as Ahrefs for, and it is upfront about the few things only a paid, web-scale index can do.
 
@@ -94,6 +94,20 @@ All optional. See [`.env.example`](.env.example).
 | `API_RATE_LIMIT_PER_MINUTE` | Per-IP request budget for the API (default 60) |
 | `SITE_URL` | Public base URL, used in `sitemap.xml` and `robots.txt` |
 | `ALLOW_PRIVATE_HOSTS` | **Development only.** Lets the fetcher reach localhost/private IPs. Never enable on a public deployment. |
+| `AUTH_SECRET` | Signs session cookies. Required to turn on sign-in (`npx auth secret` generates one) |
+| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google sign-in |
+| `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` | GitHub sign-in |
+| `RESEND_API_KEY` | Turns on the contact form (sends through [Resend](https://resend.com)) |
+| `CONTACT_TO_EMAIL` | Inbox that receives contact and waitlist messages (server-side only) |
+| `CONTACT_FROM_EMAIL` | Sender on a domain verified in Resend (default: Resend's test sender) |
+
+### Accounts, contact form and plans
+
+- **Sign-in** (`/login`, `/account`) uses [Auth.js](https://authjs.dev) with Google and GitHub and stores sessions in a signed cookie, so there is no database. It switches on when `AUTH_SECRET` and at least one provider's ID and secret are set; until then the login page says accounts are coming soon. Register these OAuth callback URLs:
+  - Google: `https://YOUR-DOMAIN/api/auth/callback/google`
+  - GitHub: `https://YOUR-DOMAIN/api/auth/callback/github`
+- **Contact form** (`/contact`) emails messages through Resend when `RESEND_API_KEY` and `CONTACT_TO_EMAIL` are set (rate limited to 5 per hour per IP, with a spam honeypot). Without them, the page points to GitHub issues.
+- **Plans** (`/pricing`) are defined in [`lib/plans.ts`](lib/plans.ts). Free covers every tool; Pro ($19/month) and Agency ($49/month) are on a waitlist (the "Join the waitlist" buttons open the contact form) until payments are added. Paid limits are not enforced in code yet.
 
 Deploying to a serverless platform works, but long audits need a function time limit of a few minutes (`maxDuration` is set to 300s on the audit route). A long-running Node server or container is the best fit.
 
@@ -120,6 +134,7 @@ Full reference: `/api-docs` in the running app.
 
 ```
 app/                 Next.js App Router pages and /api/v1 route handlers
+auth.ts              Auth.js configuration (Google, GitHub; JWT sessions)
 components/          UI (tool pages, report panels, SVG charts, tables)
 lib/net/             SSRF-safe HTTP client (redirects, TTFB, compression, TLS)
 lib/seo/             HTML extraction, scored checks, robots.txt, sitemaps, tech detection, text metrics
@@ -127,6 +142,8 @@ lib/audit/           Crawler, issue engine and health score
 lib/keywords/        Autocomplete expansion, scoring, intent and clustering
 lib/sources/         Tranco, RDAP, DNS, Wayback, PageSpeed, Open PageRank, autocomplete clients
 lib/traffic-model.ts Rank → visits model
+lib/plans.ts         Pricing plans and the feature comparison table
+lib/faq.ts, lib/pages.ts  FAQ content and the page list behind the footer and sitemaps
 tests/               Vitest unit tests + integration tests against a local fixture website
 ```
 

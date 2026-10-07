@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, BarChart3, Braces, Check, FileSearch, GitCompare, Link2, Minus, Sparkles, Stethoscope, Gauge, Eye, Zap, Lock, Download, Code2 } from "lucide-react";
 import { HeroSearch } from "@/components/HeroSearch";
+import { HOME_FAQ } from "@/lib/faq";
 
 const TOOLS = [
   { href: "/traffic", icon: BarChart3, title: "Website traffic checker", body: "Popularity rank, 30-day trend and an estimated visits range for any domain, plus hosting, tech stack and domain age." },
@@ -16,14 +17,14 @@ const TOOLS = [
 const WHY = [
   { icon: Eye, title: "Every number shows its work", body: "Each metric names its source and links to the method behind it. Estimates come with ranges, not false precision." },
   { icon: Zap, title: "Live, not stale", body: "Audits and page checks fetch the site right now, instead of reading from a stored index." },
-  { icon: Lock, title: "No sign-up, no paywall", body: "Every tool is free to use without an account, a credit card or a captcha wall." },
+  { icon: Lock, title: "Free tools, no sign-up", body: "Every tool works without an account, a credit card or a captcha wall. Paid plans only add capacity, like bigger crawls and monitoring." },
   { icon: Download, title: "Export everything", body: "CSV and JSON exports on every table. Shareable links for every report." },
   { icon: Code2, title: "Open source & self-hostable", body: "Run it on your own server, read the code, or extend it. MIT licensed." },
   { icon: Braces, title: "API included", body: "The same engine behind the UI is available as a documented REST API." },
 ];
 
 const COMPARISON: [string, string | boolean, string | boolean][] = [
-  ["Price", "Free, open source", "Paid subscription"],
+  ["Price", "Free; paid plans from $19/mo (coming soon)", "Paid subscription"],
   ["Use without an account", true, false],
   ["Site audit", "Live crawl, no setup", "Project setup and crawl quotas"],
   ["On-page SEO checks", true, true],
@@ -122,13 +123,7 @@ export default function Home() {
       <section aria-labelledby="faq-heading" className="py-10">
         <h2 id="faq-heading" className="text-xl font-semibold text-ink">Questions</h2>
         <div className="mt-4 divide-y divide-line rounded-xl border border-line bg-surface">
-          {[
-            ["Where does the traffic data come from?", "From the Tranco list, a research-grade top-1M ranking that averages several independent popularity sources over 30 days, which makes it hard to game. We convert the rank to a visits range with a published power-law model."],
-            ["How accurate are the traffic estimates?", "Treat them as order-of-magnitude. Every traffic tool estimates; we show a range and the method instead of a single number that looks exact. The rank itself is real measured data."],
-            ["Do you store the sites I check?", "No. Reports are generated live and not saved on the server. Recent searches are kept only in your own browser."],
-            ["Is the crawler polite?", "Yes. It identifies itself as TrafficLensBot, respects robots.txt and crawl-delay by default, and limits concurrency and pages per audit."],
-            ["Why no backlinks or search volume?", "Both need a proprietary web-scale index or clickstream panel; no free, accurate source exists. Rather than invent numbers, we leave them out."],
-          ].map(([q, a]) => (
+          {HOME_FAQ.map(({ q, a }) => (
             <details key={q} className="group px-5 py-4">
               <summary className="flex cursor-pointer items-center justify-between font-medium text-ink">
                 {q}
@@ -138,6 +133,9 @@ export default function Home() {
             </details>
           ))}
         </div>
+        <Link href="/faq" className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-accent-ink hover:underline">
+          See all questions <ArrowRight className="h-4 w-4" aria-hidden />
+        </Link>
       </section>
     </div>
   );

@@ -26,7 +26,8 @@ interface RunState {
 }
 
 const INITIAL: RunState = { phase: "idle", crawled: 0, queued: 0, recent: [], messages: [], linkProgress: null, report: null, error: null };
-const PAGE_OPTIONS = [25, 50, 100, 200, 500];
+// The Free plan allows up to 200 pages per crawl (MAX_AUDIT_PAGES on the server).
+const PAGE_OPTIONS = [25, 50, 100, 200];
 
 export function AuditTool() {
   const params = useSearchParams();
