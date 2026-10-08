@@ -7,6 +7,7 @@ import { flushSync } from "react-dom";
 import { Menu, Moon, Sun, X } from "lucide-react";
 import { cx } from "./ui";
 import { useAccount, type AccountUser } from "@/lib/client/account";
+import { ensureRevealKeyframes } from "@/lib/client/theme-reveal";
 import { Logo } from "./Logo";
 
 export const NAV = [
@@ -50,7 +51,7 @@ function ThemeToggle() {
     const next = theme === "dark" ? "light" : "dark";
     const id = ++latest.current;
     const cleanUp = () => {
-      if (latest.current === id) root.classList.remove("theme-switching", "theme-reveal");
+      if (latest.current === id) root.classList.remove("theme-switching", "theme-reveal", "theme-reveal-new");
     };
     const apply = () => {
       root.dataset.theme = next;
@@ -61,6 +62,8 @@ function ThemeToggle() {
       }
       // Render the new icon now so the transition captures it.
       flushSync(() => setSpins((n) => n + 1));
+      // The new page is captured under its own name, so only it is put in the circle.
+      root.classList.add("theme-reveal-new");
     };
 
     // Colors switch at once instead of fading through element transitions.
@@ -74,8 +77,9 @@ function ThemeToggle() {
     }
 
     // Reveal the new theme in a circle that grows from the button to the farthest corner
-    // (globals.css runs the animation). On iPhones the page also runs under the browser
-    // toolbars, so measure to the bottom of the screen, not just the visible viewport.
+    // (lib/client/theme-reveal.ts and globals.css run the animation). On iPhones the page
+    // also runs under the browser toolbars, so measure to the bottom of the screen.
+    ensureRevealKeyframes();
     const rect = event.currentTarget.getBoundingClientRect();
     const x = rect.left + rect.width / 2;
     const y = rect.top + rect.height / 2;
@@ -84,6 +88,7 @@ function ThemeToggle() {
     root.style.setProperty("--reveal-x", `${x}px`);
     root.style.setProperty("--reveal-y", `${y}px`);
     root.style.setProperty("--reveal-r", `${Math.ceil(radius)}px`);
+    root.classList.remove("theme-reveal-new");
     root.classList.add("theme-reveal");
     const transition = document.startViewTransition(apply);
 

@@ -234,32 +234,48 @@ body {
   }
 }
 
-/* Theme switch (see ThemeToggle): the old page stays still underneath while the new
-   theme is revealed in a circle growing from the button, and the new sun/moon icon
-   spins in. The animation lives in CSS so it starts on the transition's first frame. */
+/* Theme switch (see ThemeToggle and lib/client/theme-reveal.ts): the old page stays
+   still underneath while the new theme is revealed in a circle growing from the button.
+   The old and new pages are captured under different names so only the new one sits in
+   the circle. The circle is a rounded box scaled up with a transform while the page
+   inside is scaled down to match, so nothing is repainted while it grows. */
 :root.theme-switching *,
 :root.theme-switching *::before,
 :root.theme-switching *::after {
   transition: none !important;
 }
 
-:root.theme-reveal::view-transition-old(root) {
+:root.theme-reveal {
+  view-transition-name: theme-old;
+}
+
+:root.theme-reveal.theme-reveal-new {
+  view-transition-name: theme-new;
+}
+
+::view-transition-old(theme-old) {
   animation: none;
-  mix-blend-mode: normal;
 }
 
-:root.theme-reveal::view-transition-new(root) {
-  mix-blend-mode: normal;
-  animation: theme-reveal 550ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+::view-transition-image-pair(theme-new) {
+  inset: auto;
+  left: calc(var(--reveal-x) - var(--reveal-r));
+  top: calc(var(--reveal-y) - var(--reveal-r));
+  width: calc(var(--reveal-r) * 2);
+  height: calc(var(--reveal-r) * 2);
+  border-radius: 50%;
+  overflow: hidden;
+  animation: theme-reveal-circle 600ms linear both;
 }
 
-@keyframes theme-reveal {
-  from {
-    clip-path: circle(0 at var(--reveal-x) var(--reveal-y));
-  }
-  to {
-    clip-path: circle(var(--reveal-r) at var(--reveal-x) var(--reveal-y));
-  }
+::view-transition-new(theme-new) {
+  inset: auto;
+  left: calc(var(--reveal-r) - var(--reveal-x));
+  top: calc(var(--reveal-r) - var(--reveal-y));
+  inline-size: 100vw;
+  block-size: auto;
+  transform-origin: var(--reveal-x) var(--reveal-y);
+  animation: theme-reveal-page 600ms linear both;
 }
 
 @media (prefers-reduced-motion: no-preference) {
