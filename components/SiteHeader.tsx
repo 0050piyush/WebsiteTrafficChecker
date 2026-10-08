@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useSyncExternalStore, type MouseEvent } from "react";
+import { useRef, useState, useSyncExternalStore, type MouseEvent as ReactMouseEvent } from "react";
 import { flushSync } from "react-dom";
 import { Menu, Moon, Sun, X } from "lucide-react";
 import { cx } from "./ui";
@@ -33,8 +33,6 @@ function subscribeTheme(onChange: () => void) {
   return () => observer.disconnect();
 }
 
-const REVEAL_MS = 550;
-
 function ThemeToggle() {
   // The inline head script sets data-theme before paint; mirror it here.
   const theme = useSyncExternalStore(
@@ -44,10 +42,16 @@ function ThemeToggle() {
   );
   // Counts switches so the icon remounts and spins on each one, but not on page load.
   const [spins, setSpins] = useState(0);
+  // Only the latest switch cleans up, so a quick second tap isn't cut short by the first.
+  const latest = useRef(0);
 
-  const toggle = (event: MouseEvent<HTMLButtonElement>) => {
+  const toggle = (event: ReactMouseEvent<HTMLButtonElement>) => {
     const root = document.documentElement;
     const next = theme === "dark" ? "light" : "dark";
+    const id = ++latest.current;
+    const cleanUp = () => {
+      if (latest.current === id) root.classList.remove("theme-switching", "theme-reveal");
+    };
     const apply = () => {
       root.dataset.theme = next;
       try {
@@ -59,27 +63,46 @@ function ThemeToggle() {
       flushSync(() => setSpins((n) => n + 1));
     };
 
+    // Colors switch at once instead of fading through element transitions.
+    root.classList.add("theme-switching");
+
     if (!document.startViewTransition || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       apply();
+      void window.getComputedStyle(document.body).color;
+      setTimeout(cleanUp, 1);
       return;
     }
 
-    // Reveal the new theme in a circle that grows from the button to the farthest corner.
+    // Reveal the new theme in a circle that grows from the button to the farthest corner
+    // (globals.css runs the animation). On iPhones the page also runs under the browser
+    // toolbars, so measure to the bottom of the screen, not just the visible viewport.
     const rect = event.currentTarget.getBoundingClientRect();
     const x = rect.left + rect.width / 2;
     const y = rect.top + rect.height / 2;
-    const radius = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
+    const height = Math.max(window.innerHeight, window.screen.height);
+    const radius = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, height - y));
+    root.style.setProperty("--reveal-x", `${x}px`);
+    root.style.setProperty("--reveal-y", `${y}px`);
+    root.style.setProperty("--reveal-r", `${Math.ceil(radius)}px`);
     root.classList.add("theme-reveal");
     const transition = document.startViewTransition(apply);
-    transition.ready
-      .then(() => {
-        root.animate(
-          { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] },
-          { duration: REVEAL_MS, easing: "cubic-bezier(0.4, 0, 0.2, 1)", pseudoElement: "::view-transition-new(root)" },
-        );
+
+    // While the circle grows, taps land on the page root instead of the button. Pass taps
+    // on the button through, so tapping again switches straight back.
+    const button = event.currentTarget;
+    const forwardTap = (e: MouseEvent) => {
+      const r = button.getBoundingClientRect();
+      if (e.target !== root || e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
+      e.stopPropagation();
+      button.click();
+    };
+    document.addEventListener("click", forwardTap, true);
+    transition.finished
+      .finally(() => {
+        document.removeEventListener("click", forwardTap, true);
+        cleanUp();
       })
       .catch(() => undefined);
-    transition.finished.finally(() => root.classList.remove("theme-reveal")).catch(() => undefined);
   };
 
   return (
