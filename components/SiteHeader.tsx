@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore, type MouseEvent } from "react";
+import { flushSync } from "react-dom";
 import { Menu, Moon, Sun, X } from "lucide-react";
 import { cx } from "./ui";
 import { useAccount, type AccountUser } from "@/lib/client/account";
@@ -32,6 +33,8 @@ function subscribeTheme(onChange: () => void) {
   return () => observer.disconnect();
 }
 
+const REVEAL_MS = 550;
+
 function ThemeToggle() {
   // The inline head script sets data-theme before paint; mirror it here.
   const theme = useSyncExternalStore(
@@ -39,15 +42,46 @@ function ThemeToggle() {
     () => (document.documentElement.dataset.theme === "dark" ? "dark" : "light"),
     () => null,
   );
-  const toggle = () => {
+  // Counts switches so the icon remounts and spins on each one, but not on page load.
+  const [spins, setSpins] = useState(0);
+
+  const toggle = (event: MouseEvent<HTMLButtonElement>) => {
+    const root = document.documentElement;
     const next = theme === "dark" ? "light" : "dark";
-    document.documentElement.dataset.theme = next;
-    try {
-      localStorage.setItem("theme", next);
-    } catch {
-      /* storage unavailable */
+    const apply = () => {
+      root.dataset.theme = next;
+      try {
+        localStorage.setItem("theme", next);
+      } catch {
+        /* storage unavailable */
+      }
+      // Render the new icon now so the transition captures it.
+      flushSync(() => setSpins((n) => n + 1));
+    };
+
+    if (!document.startViewTransition || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      apply();
+      return;
     }
+
+    // Reveal the new theme in a circle that grows from the button to the farthest corner.
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    const radius = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
+    root.classList.add("theme-reveal");
+    const transition = document.startViewTransition(apply);
+    transition.ready
+      .then(() => {
+        root.animate(
+          { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] },
+          { duration: REVEAL_MS, easing: "cubic-bezier(0.4, 0, 0.2, 1)", pseudoElement: "::view-transition-new(root)" },
+        );
+      })
+      .catch(() => undefined);
+    transition.finished.finally(() => root.classList.remove("theme-reveal")).catch(() => undefined);
   };
+
   return (
     <button
       type="button"
@@ -56,7 +90,9 @@ function ThemeToggle() {
       aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
       title="Toggle theme"
     >
-      {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+      <span key={spins} className={cx("inline-flex", spins > 0 && "theme-icon-spin")}>
+        {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+      </span>
     </button>
   );
 }

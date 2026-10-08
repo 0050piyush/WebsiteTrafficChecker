@@ -234,6 +234,31 @@ body {
   }
 }
 
+/* Theme switch (see ThemeToggle): keep the old page still underneath while the new
+   theme is revealed in a growing circle, and spin the new sun/moon icon in. */
+:root.theme-reveal::view-transition-old(root),
+:root.theme-reveal::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .theme-icon-spin {
+    animation: theme-icon-spin 550ms cubic-bezier(0.34, 1.4, 0.64, 1);
+  }
+}
+
+@keyframes theme-icon-spin {
+  from {
+    opacity: 0;
+    transform: rotate(-180deg) scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+  }
+}
+
 @keyframes shimmer {
   0% {
     background-position: 100% 0;
